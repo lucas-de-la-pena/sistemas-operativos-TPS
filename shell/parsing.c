@@ -1,4 +1,5 @@
 #include "parsing.h"
+extern int status;
 
 // parses an argument of the command stream input
 static char *
@@ -106,7 +107,9 @@ expand_environ_var(char *arg)
 
 	char *var = arg + 1;
 	if(var[0] == '?') {
-		
+		char buffer[16];
+		snprintf(buffer, sizeof(buffer), "%d", WEXITSTATUS(status));
+		return strdup(buffer);
 	}
 	char *val = getenv(var);
 	if (val == NULL) {

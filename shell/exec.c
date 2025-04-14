@@ -48,6 +48,20 @@ get_environ_value(char *arg, char *value, int idx)
 static void
 set_environ_vars(char **eargv, int eargc)
 {
+	while(eargc > 0) {
+		// get the index of the '=' char
+		int idx = block_contains(eargv[0], '=');
+
+		char key[ARGSIZE];
+		char value[ARGSIZE];
+
+		get_environ_key(eargv[0], key);
+		get_environ_value(eargv[0], value, idx);
+
+		setenv(key, value, 1);
+		
+		eargc--;
+	}
 	//todo esto en un ciclo
 	//puedo usar los dos gets para separar el key y el value teniendo en cuenta el =
 	// y luego usar setenv para setear la variable
