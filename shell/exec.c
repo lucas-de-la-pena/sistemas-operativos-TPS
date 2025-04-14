@@ -62,11 +62,6 @@ set_environ_vars(char **eargv, int eargc)
 		
 		eargc--;
 	}
-	//todo esto en un ciclo
-	//puedo usar los dos gets para separar el key y el value teniendo en cuenta el =
-	// y luego usar setenv para setear la variable
-	int indice_variable = block_contains(eargv[0], '=');
-	// Your code here
 }
 
 // opens the file in which the stdin/stdout/stderr
