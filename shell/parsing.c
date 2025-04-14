@@ -101,8 +101,23 @@ parse_environ_var(struct execcmd *c, char *arg)
 static char *
 expand_environ_var(char *arg)
 {
-	// Your code here
+	if (arg[0] != '$')
+		return arg;
 
+	char *var = arg + 1;
+	if(var[0] == '?') {
+		
+	}
+	char *val = getenv(var);
+	if (val == NULL) {
+		return strdup("");
+	}
+	int len_val = strlen(val);
+	int len_arg = strlen(arg);
+	if (len_val > len_arg) {
+		arg = realloc(arg, len_val + 1);
+	}
+	strcpy(arg, val);
 	return arg;
 }
 
