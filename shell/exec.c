@@ -69,7 +69,7 @@ open_redir_fd(char *file, int flags)
 	return -1;
 }
 
-// executes a command - does not return
+// executes a command - does not return   ---------------------- Esto ----------------------------------------
 //
 // Hint:
 // - check how the 'cmd' structs are defined
@@ -86,19 +86,19 @@ exec_cmd(struct cmd *cmd)
 
 	switch (cmd->type) {
 	case EXEC:
-		// spawns a command
-		//
-		// Your code here
-		printf("Commands are not yet implemented\n");
-		_exit(-1);
+		e = (struct execcmd *)cmd;
+		// set_environ_vars(e->argv, e->eargc); Deberia ir con la parte de Benjamin
+		int op_result = execvp(e->argv[0], e->argv);
+		if (op_result < 0) {
+			perror("ERROR: Execvp failed on Exec call");
+			free_command(cmd);
+			exit(-1);
+		}
 		break;
 
 	case BACK: {
-		// runs a command in background
-		//
-		// Your code here
-		printf("Background process are not yet implemented\n");
-		_exit(-1);
+		b = (struct backcmd *)cmd;
+		exec_cmd(b->c);
 		break;
 	}
 
@@ -108,18 +108,29 @@ exec_cmd(struct cmd *cmd)
 		// To check if a redirection has to be performed
 		// verify if file name's length (in the execcmd struct)
 		// is greater than zero
-		//
-		// Your code here
-		printf("Redirections are not yet implemented\n");
-		_exit(-1);
+		r = (struct execcmd *)cmd;
+		if (strlen(r->in_file) > 0) { //Cambiar entrada
+			dup2(r->out_file, STDIN_FILENO);
+		}
+		if (strlen(r->out_file) > 0) { //Cambiar salida
+			dup2(r->out_file, STDOUT_FILENO);
+		}
+		if (strlen(r->err_file) > 0) { //Cambiar error
+			dup2(r->out_file, STDERR_FILENO);
+		}
+		
+		cmd->type = EXEC;
+		exec_cmd((struct execcmd *)cmd);
+
 		break;
 	}
 
 	case PIPE: {
 		// pipes two commands
 		//
-		// Your code here
-		printf("Pipes are not yet implemented\n");
+		p = (struct pipecmd *)cmd;
+
+		
 
 		// free the memory allocated
 		// for the pipe tree structure
