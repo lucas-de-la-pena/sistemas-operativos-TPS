@@ -133,6 +133,9 @@ parse_exec(char *buf_cmd)
 			continue;
 
 		tok = expand_environ_var(tok);
+		if (tok[0] == END_STRING) {
+			continue;
+		}
 
 		c->argv[argc++] = tok;
 	}
@@ -142,7 +145,6 @@ parse_exec(char *buf_cmd)
 
 	return (struct cmd *) c;
 }
-
 // parses a command knowing that it contains the '&' char
 static struct cmd *
 parse_back(char *buf_cmd)
