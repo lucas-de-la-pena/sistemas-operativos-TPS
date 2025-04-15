@@ -69,8 +69,7 @@ open_redir_fd(char *file, int flags)
 	return -1;
 }
 
-// executes a command - does not return   ---------------------- Esto ----------------------------------------
-//
+// executes a command - does not return
 // Hint:
 // - check how the 'cmd' structs are defined
 // 	in types.h
@@ -86,7 +85,7 @@ exec_cmd(struct cmd *cmd)
 
 	switch (cmd->type) {
 	case EXEC:
-		e = (struct execcmd *)cmd;
+		e = (struct execcmd *) cmd;
 		// set_environ_vars(e->argv, e->eargc); Deberia ir con la parte de Benjamin
 		int op_result = execvp(e->argv[0], e->argv);
 		if (op_result < 0) {
@@ -97,7 +96,7 @@ exec_cmd(struct cmd *cmd)
 		break;
 
 	case BACK: {
-		b = (struct backcmd *)cmd;
+		b = (struct backcmd *) cmd;
 		exec_cmd(b->c);
 		break;
 	}
@@ -108,19 +107,19 @@ exec_cmd(struct cmd *cmd)
 		// To check if a redirection has to be performed
 		// verify if file name's length (in the execcmd struct)
 		// is greater than zero
-		r = (struct execcmd *)cmd;
-		if (strlen(r->in_file) > 0) { //Cambiar entrada
+		r = (struct execcmd *) cmd;
+		if (strlen(r->in_file) > 0) {  // Cambiar entrada
 			dup2(r->out_file, STDIN_FILENO);
 		}
-		if (strlen(r->out_file) > 0) { //Cambiar salida
+		if (strlen(r->out_file) > 0) {  // Cambiar salida
 			dup2(r->out_file, STDOUT_FILENO);
 		}
-		if (strlen(r->err_file) > 0) { //Cambiar error
+		if (strlen(r->err_file) > 0) {  // Cambiar error
 			dup2(r->out_file, STDERR_FILENO);
 		}
-		
+
 		cmd->type = EXEC;
-		exec_cmd((struct execcmd *)cmd);
+		exec_cmd((struct execcmd *) cmd);
 
 		break;
 	}
@@ -128,9 +127,10 @@ exec_cmd(struct cmd *cmd)
 	case PIPE: {
 		// pipes two commands
 		//
-		p = (struct pipecmd *)cmd;
+		// p = (struct pipecmd *)cmd;
+		// int pipes_fd[2];
+		// pid_t pid = fork();
 
-		
 
 		// free the memory allocated
 		// for the pipe tree structure
