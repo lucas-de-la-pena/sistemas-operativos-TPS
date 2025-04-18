@@ -21,6 +21,20 @@ Dentro de nuestra implementación, en caso de error, se muestra un mensaje con `
 ---
 
 ### Procesos en segundo plano
+#### Breve explicación del mecanismo utilizado
+Primero se crea un **stack alternativo**, el cual permite que el **handler** se ejecute en una pila distinta de la principal. Útil en caso de fallos, ya que evita interferencias con los datos del stack original.
+Luego, se configura un `sigaction` que asigna el **handler** a la señal `SIGCHLD`. Este handler se ejecutará en el **stack alternativo** y, gracias a la flag `SA_RESTART`, reiniciará automáticamente cualquier **syscall** que haya sido interrumpida por la señal.
+Finalmente, se implementa la función `handler_bp`, asociada a la `sigaction`, con el objetivo de manejar los recursos de los procesos en segundo plano. Esta función es llamada cuando un proceso hijo de tipo **background** finaliza, notificando al usuario de manera inmediata junto con su **PID**. 
+La obtención del PID se realiza mediante `waitpid` con la flag `WNOHANG`, lo que permite un llamado a esta función **no bloqueante**. Además, en esta implementación, los procesos que no son de tipo **background** tienen un **group ID distinto al del padre**, lo que evita que el handler se active innecesariamente.
+
+
+#### ¿Por qué es necesario el uso de señales?
+Cuando un proceso hijo finaliza, el sistema operativo envía una señal `SIGCHLD` al proceso padre para notificarlo de dicho evento. La utilización de la misma es esencial para que el padre se entere cuándo termina uno de estos procesos sin necesidad de esperarlos de forma bloqueante, especialmente útil para una **shell** que permite ejecutar **procesos en segundo plano**.
+Por lo tanto, utilizar señales permite que la **shell** siga interactuando con el usuario mientras los procesos **background** se ejecutan. Al capturar `SIGCHLD` con un **handler** mediante `sigaction`, la **shell** puede ejecutar `waitpid` con la flag `WNOHANG`, evitando así  que el proceso padre se bloquee esperando (y seguir así su hilo de ejecución).
+
+En el caso de este trabajo práctico, se utiliza el **handler** para mostrarle al usuario apenas un background process finaliza un mensaje del mismo junto a a su  **PID**.
+Asimismo, se usan las flags `SA_ONSTACK` y `SA_RESTART` que permiten que el **handler** se ejecute en una pila alternativa y que si la señal interrumpe una **syscall**, esta sea reiniciada automáticamente.
+Esto mejora la experiencia del usuario, permitiendo que la **shell** sea reactivada sin perder información sobre los **procesos en segundo plano**, como también el manejo de recursos e información de manera **instantánea** una vez que estos finalicen.
 
 ---
 
