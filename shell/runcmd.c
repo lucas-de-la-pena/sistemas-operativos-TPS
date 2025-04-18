@@ -42,6 +42,11 @@ run_cmd(char *cmd)
 		if (parsed->type == PIPE)
 			parsed_pipe = parsed;
 
+		// Establece el PGID del proceso actual con el valor de su propio PID
+		// Por lo que los procesos no background son los "lideres" de sus propios grupos
+		if (parsed->type != BACK)
+			setpgid(0, 0);
+
 		exec_cmd(parsed);
 	}
 
@@ -58,9 +63,12 @@ run_cmd(char *cmd)
 	// Your code here
 
 	// waits for the process to finish
-	waitpid(p, &status, 0);
+	if (parsed->type != BACK) {
+		waitpid(p, &status, 0);  // NO ESPERARLOS SI ES DE TIPO BACK
+		print_status_info(parsed);
+	} else
+		print_back_info(parsed);
 
-	print_status_info(parsed);
 
 	free_command(parsed);
 
