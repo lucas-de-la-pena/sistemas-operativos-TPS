@@ -1,6 +1,10 @@
 #include "exec.h"
+#define READ 0
+#define WRITE 1
+#define FILE_DESCRIPTORS 2
 
 void redirect(struct cmd *cmd);
+void pipe_cmd(struct cmd *cmd);
 
 // sets "key" with the key part of "arg"
 // and null-terminates it
@@ -88,7 +92,6 @@ exec_cmd(struct cmd *cmd)
 	// To be used in the different cases
 	struct execcmd *e;
 	struct backcmd *b;
-	struct pipecmd *p;
 
 	switch (cmd->type) {
 	case EXEC:
@@ -109,27 +112,13 @@ exec_cmd(struct cmd *cmd)
 	}
 
 	case REDIR: {
-		// changes the input/output/stderr flow
-		//
-		// To check if a redirection has to be performed
-		// verify if file name's length (in the execcmd struct)
-		// is greater than zero
 		redirect(cmd);
 		break;
 	}
 
 	case PIPE: {
-		// pipes two commands
-		//
-		// p = (struct pipecmd *)cmd;
-		// int pipes_fd[2];
-		// pid_t pid = fork();
-
-
-		// free the memory allocated
-		// for the pipe tree structure
-		free_command(parsed_pipe);
-
+		pipe_cmd(cmd);
+		exit(0);
 		break;
 	}
 	}
@@ -138,6 +127,11 @@ exec_cmd(struct cmd *cmd)
 void
 redirect(struct cmd *cmd)
 {
+	// changes the input/output/stderr flow
+	//
+	// To check if a redirection has to be performed
+	// verify if file name's length (in the execcmd struct)
+	// is greater than zero
 	struct execcmd *r = (struct execcmd *) cmd;
 	if (strlen(r->in_file) > 0) {
 		int fd_in = open_redir_fd(r->in_file, O_RDONLY);
@@ -177,5 +171,55 @@ redirect(struct cmd *cmd)
 	}
 
 	cmd->type = EXEC;
-	exec_cmd((struct execcmd *) cmd);
+	exec_cmd(cmd);
+}
+
+
+void
+pipe_cmd(struct cmd *cmd)
+{
+	// pipes two commands
+	struct pipecmd *p = (struct pipecmd *) cmd;
+	int pipes_fd[FILE_DESCRIPTORS];
+
+	if (pipe(pipes_fd) < 0) {
+		perror("ERROR: Failed to create pipe");
+		free_command(cmd);
+		exit(-1);
+	}
+
+	pid_t left_pid = fork();
+
+	if (left_pid < 0) {
+		perror("ERROR: Failed to fork");
+		free_command(cmd);
+		exit(-1);
+	}
+
+	if (left_pid == 0) {
+		close(pipes_fd[READ]);
+		dup2(pipes_fd[WRITE], STDOUT_FILENO);
+		close(pipes_fd[1]);
+		exec_cmd((struct cmd *) p->leftcmd);
+	}
+
+	pid_t right_pid = fork();
+	if (right_pid < 0) {
+		perror("ERROR: Failed to fork");
+		free_command(cmd);
+		exit(-1);
+	}
+
+	if (right_pid == 0) {
+		close(pipes_fd[WRITE]);
+		dup2(pipes_fd[READ], STDIN_FILENO);
+		close(pipes_fd[READ]);
+		exec_cmd((struct cmd *) p->rightcmd);
+	}
+
+
+	close(pipes_fd[READ]);
+	close(pipes_fd[WRITE]);
+	waitpid(left_pid, NULL, 0);
+	waitpid(right_pid, NULL, 0);
 }
