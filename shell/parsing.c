@@ -190,8 +190,13 @@ parse_line(char *buf)
 
 	char *right = split_line(buf, '|');
 
-	l = parse_cmd(buf);
-	r = parse_cmd(right);
+	if (*right == END_STRING) {
+		l = parse_cmd(buf);
+		r = NULL;
+	} else {
+		l = parse_cmd(buf);
+		r = parse_line(right);
+	}
 
-	return pipe_cmd_create(l, r);
+	return r ? pipe_cmd_create(l, r) : l;
 }
