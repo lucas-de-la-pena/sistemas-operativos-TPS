@@ -24,7 +24,9 @@ Dentro de nuestra implementación, en caso de error, se muestra un mensaje con `
 #### Breve explicación del mecanismo utilizado
 Primero se crea un **stack alternativo**, el cual permite que el **handler** se ejecute en una pila distinta de la principal. Útil en caso de fallos, ya que evita interferencias con los datos del stack original.
 Luego, se configura un `sigaction` que asigna el **handler** a la señal `SIGCHLD`. Este handler se ejecutará en el **stack alternativo** y, gracias a la flag `SA_RESTART`, reiniciará automáticamente cualquier **syscall** que haya sido interrumpida por la señal.
+
 Finalmente, se implementa la función `handler_bp`, asociada a la `sigaction`, con el objetivo de manejar los recursos de los procesos en segundo plano. Esta función es llamada cuando un proceso hijo de tipo **background** finaliza, notificando al usuario de manera inmediata junto con su **PID**. 
+
 La obtención del PID se realiza mediante `waitpid` con la flag `WNOHANG`, lo que permite un llamado a esta función **no bloqueante**. Además, en esta implementación, los procesos que no son de tipo **background** tienen un **group ID distinto al del padre**, lo que evita que el handler se active innecesariamente.
 
 
