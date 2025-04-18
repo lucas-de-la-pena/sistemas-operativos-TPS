@@ -26,6 +26,32 @@ Dentro de nuestra implementación, en caso de error, se muestra un mensaje con `
 
 ### Flujo estándar
 
+#### ¿Cuál es el significado de 2>&1?
+
+Indica que va a redireccionar el file descriptor de STDERR hacia el file descriptor de STDOUT, entonces todo lo que se escriba en el FD de STDERR, será redireccionado hacia STDOUT
+
+
+#### ¿Que sucede con la sálida de `cat out.txt` en el ejemplo?
+
+En el ejemplo lo que sucede es que se va a rediccionar la sálida de STDERR hacía el archivo `out.txt` por lo que en ese archivo
+no solo veríamos el listado de los archivos del directorio, sino que también veríamos el error de que el directorio `/noexiste` no existe como tal.
+
+Esta es la sálida de nuestra shell
+```
+cat out.txt
+ls: no se puede acceder a '/noexiste': No existe el archivo o el directorio
+/home:
+linuxbrew  tommy  tommy-facultad
+```
+
+#### ¿Qué pasa si invertimos el orden de las redirecciones?
+
+Si invertimos el orden de las redirecciones, es decir, `ls -C /home /noexiste 2>&1 >out.txt`, lo que sucede es primero vamos a redireccionar STDERR
+hacia el primer file descriptor de STDOUT, es decir, no será redigirido hacía `out.txt`, sino hacia STDOUT que sería la sálida de la terminal.
+
+#### 
+
+
 ---
 
 ### Tuberías múltiples
