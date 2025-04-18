@@ -183,6 +183,8 @@ parse_cmd(char *buf_cmd)
 
 // parses the command line
 // looking for the pipe character '|'
+// if it has more than one pipe, it will
+// create a chain of pipe commands
 struct cmd *
 parse_line(char *buf)
 {
