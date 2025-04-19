@@ -49,7 +49,42 @@ linuxbrew  tommy  tommy-facultad
 Si invertimos el orden de las redirecciones, es decir, `ls -C /home /noexiste 2>&1 >out.txt`, lo que sucede es primero vamos a redireccionar STDERR
 hacia el primer file descriptor de STDOUT, es decir, no será redigirido hacía `out.txt`, sino hacia STDOUT que sería la sálida de la terminal.
 
-#### 
+#### ¿Qué ocurre con el exit code reportado por la shell si se ejecuta un pipe?
+
+- ¿Cambia en algo?
+
+Sí, por lo general cuando ejecutamos un comando de manera individual, vamos a recibir un exit code en base a lo que suceda durante la ejecución del programa.
+Lo que cambia cuando se utilizan pipes, es que el exit code reportado pro la shell es el exit code el ÚLTIMO comando ejecutado.
+
+- ¿Qué ocurre si, en un pipe, alguno de los comandos falla?
+
+Si alguno de los comandos falla, el exit code del pipe va a ser el exit code del ÚLTIMO comando ejecutado en el pipe, porque dentro del pipeline, no importa si alguna ejecución de los comandos falla, la cadena de comandos se sigue ejecutando, con el problema de que van a haber comandos que no reciban entrada de datos por STDIN. Podemos ver el exit code del pipeline utilizando `echo $?`.
+Por ejemplo:
+
+```bash
+> ls | grep | wc
+Modo de empleo: grep [OPCIÓN]... PATRONES [FICHERO]...
+Pruebe 'grep --help' para más información.
+      0       0       0
+> echo "Exit code: $?"
+> Exit code: 0
+```
+
+Si bien el comando grep falló por falta de argumentos, el exit code fue 0.
+
+Ahora, si quisieramos quedarnos con el exit code del último comando que falló, podemos hacerlo levantando una flag llamada `pipefail`
+
+```bash
+> set -o pipefail
+> ls | grep | wc
+Modo de empleo: grep [OPCIÓN]... PATRONES [FICHERO]...
+Pruebe 'grep --help' para más información.
+      0       0       0
+> echo "Exit code: $?"
+> Exit code: 2
+```
+
+De esa forma podemos obtener el exit code del último comando que falló. Y si ninguno falla, el exit code será 0.
 
 
 ---
