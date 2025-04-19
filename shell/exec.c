@@ -54,7 +54,20 @@ get_environ_value(char *arg, char *value, int idx)
 static void
 set_environ_vars(char **eargv, int eargc)
 {
-	// Your code here
+	while(eargc > 0) {
+		// get the index of the '=' char
+		int idx = block_contains(eargv[0], '=');
+
+		char key[ARGSIZE];
+		char value[ARGSIZE];
+
+		get_environ_key(eargv[0], key);
+		get_environ_value(eargv[0], value, idx);
+
+		setenv(key, value, 1);
+		
+		eargc--;
+	}
 }
 
 // opens the file in which the stdin/stdout/stderr
