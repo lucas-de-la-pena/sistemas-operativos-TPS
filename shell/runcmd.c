@@ -69,7 +69,6 @@ run_cmd(char *cmd)
 	} else
 		print_back_info(parsed);
 
-
 	free_command(parsed);
 
 	return 0;

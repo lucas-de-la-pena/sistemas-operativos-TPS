@@ -197,6 +197,7 @@ pipe_cmd(struct cmd *cmd)
 	}
 
 	if (left_pid == 0) {
+		setpgid(0, 0);
 		close(pipes_fd[READ]);
 		dup2(pipes_fd[WRITE], STDOUT_FILENO);
 		close(pipes_fd[1]);
@@ -211,6 +212,7 @@ pipe_cmd(struct cmd *cmd)
 	}
 
 	if (right_pid == 0) {
+		setpgid(0, 0);
 		close(pipes_fd[WRITE]);
 		dup2(pipes_fd[READ], STDIN_FILENO);
 		close(pipes_fd[READ]);
