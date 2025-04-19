@@ -104,23 +104,23 @@ expand_environ_var(char *arg)
 {
 	if (arg[0] != '$')
 		return arg;
-
-	char *var = arg + 1;
-	if(var[0] == '?') {
-		char buffer[16];
-		snprintf(buffer, sizeof(buffer), "%d", WEXITSTATUS(status));
-		return strdup(buffer);
+	if (strncmp(arg, "$?", 2) == 0) {
+		arg = (char *) realloc(arg, 2);
+		arg[0] = (char) (status + '0');
+		strncpy(arg + 1, "\0", 1);
 	}
-	char *val = getenv(var);
-	if (val == NULL) {
-		return strdup("");
+	else {
+		char *val = getenv(arg + 1);
+		if (val == NULL) {
+			return strdup("");
+		}
+		int len_val = strlen(val);
+		int len_arg = strlen(arg);
+		if (len_val > len_arg) {
+			arg = realloc(arg, len_val + 1);
+		}
+		strcpy(arg, val);
 	}
-	int len_val = strlen(val);
-	int len_arg = strlen(arg);
-	if (len_val > len_arg) {
-		arg = realloc(arg, len_val + 1);
-	}
-	strcpy(arg, val);
 	return arg;
 }
 

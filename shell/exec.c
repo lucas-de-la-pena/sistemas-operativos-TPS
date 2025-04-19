@@ -109,7 +109,7 @@ exec_cmd(struct cmd *cmd)
 	switch (cmd->type) {
 	case EXEC:
 		e = (struct execcmd *) cmd;
-		// set_environ_vars(e->argv, e->eargc); Deberia ir con la parte de Benjamin
+		set_environ_vars(e->argv, e->eargc); 
 		int op_result = execvp(e->argv[0], e->argv);
 		if (op_result < 0) {
 			perror("ERROR: Execvp failed on Exec call");
