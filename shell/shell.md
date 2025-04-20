@@ -111,12 +111,45 @@ De esa forma podemos obtener el exit code del último comando que falló. Y si n
 
 ### Variables de entorno temporarias
 
----
+#### ¿Por qué es necesario hacerlo luego de la llamada a fork(2)?
+
+Es necesario hacerlo despues del fork ya que la intencion que tenemos es que las variables de entorno temporales existan solo en
+el proceso hijo. De esta forma las separamos de las variables entorno que viven en la shell (el proceso padre), las cuales tienen
+otras caracteristicas
+
+#### ¿El comportamiento resultante es el mismo que en el primer caso? Explicar qué sucede y por qué.
+
+El comportamiento resultante no es el mismo. La diferencia principal es que en el primer caso, al usar setenv y despues exec, el entorno se hereda automaticamente, mientras que con un execve por ejemplo, se pasa por alto el proceso actual y lo reemplaza, solamente usando las variables de entorno pasadas por parametro e ignorando todas las demas.
+
+#### Describir brevemente (sin implementar) una posible implementación para que el comportamiento sea el mismo.
+
+Una posible implementacion podria copiar las variables de todo el entorno en un arreglo para despues pasarla por parametro a la syscall exec(3) que termina con "e". De esta manera se incluirian en el nuevo entorno todas las variables de entorno previamente planteadas y las nuevas que se quieran agregar.
+
 
 ### Pseudo-variables
 
----
+#### Investigar al menos otras tres variables mágicas estándar, y describir su propósito.
 
+Existe la variable magica $0 que contiene el nombre del script que se esta ejecutando actualmente. Por ejemplo en bash un programa que se llama "nombre.sh" :
+```bash
+#!/bin/bash
+echo "El nombre de este script es $0"
+```
+Este codigo va a imprimir por terminal "El nombre de este script es nombre.sh"
+
+Existe la variable magica $# que contiene la cantidad de argumentos pasados al script. Por ejemplo, un programa en bash como el siguiente:
+ ```bash
+#!/bin/bash
+echo "La cantidad de argumentos que se pasaron fueron $#"
+```
+Va a imprimir "La cantidad de argumentos que se pasaron fueron 2"
+
+Existe la variable magica $$ que contiene el PID del proceso actual. Por ejemplo, un programa en bash como el siguiente:
+ ```bash
+#!/bin/bash
+echo "El PID de este proceso es $$"
+```
+Va a imprimir "El PID de este proceso es 12345" (considerando que 12345 siendo el PID del Shell actual).
 ### Comandos built-in
 
 ---
