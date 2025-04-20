@@ -5,6 +5,8 @@
 
 extern char prompt[PRMTLEN];
 
+int command_matches(char *cmd, char *name);
+
 int cd(char *cmd);
 
 int exit_shell(char *cmd);

@@ -119,7 +119,9 @@ De esa forma podemos obtener el exit code del último comando que falló. Y si n
 
 ### Comandos built-in
 
----
+En la práctica, **`pwd`** podría vivir perfectamente como un programa externo (por ejemplo `/bin/pwd`), porque solo lee y muestra el directorio actual sin tocar nada del proceso de la shell. En cambio, **`cd`** no puede, porque cambiar de directorio tiene que afectar al proceso de la shell, y eso solo se puede hacer si el código se ejecuta en el mismo proceso.
+
+El comando **`pwd`** se implementa como built‐in para que esté siempre disponible, sea más rápido al evitar el fork() + execve() cada vez que se invoca y no dependa de versiones o permisos en el $PATH.
 
 ### Historial
 
