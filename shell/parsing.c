@@ -102,19 +102,17 @@ parse_environ_var(struct execcmd *c, char *arg)
 static char *
 expand_environ_var(char *arg)
 {
-	if (strncmp(arg, "$", 1) == 0) { 
+	if (strncmp(arg, "$", 1) == 0) {
 		if (strncmp(arg, "$?", 2) == 0) {
 			arg = (char *) realloc(arg, 2);
 			arg[0] = (char) (status + '0');
 			strncpy(arg + 1, "\0", 1);
-		}
-		else {
+		} else {
 			char *val = getenv(arg + 1);
 			if (val == NULL) {
 				return strdup("");
-			}
-			else{
-				arg = (char *)realloc(arg, strlen(val) + 1);
+			} else {
+				arg = (char *) realloc(arg, strlen(val) + 1);
 				strcpy(arg, val);
 			}
 		}
