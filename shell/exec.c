@@ -54,19 +54,20 @@ get_environ_value(char *arg, char *value, int idx)
 static void
 set_environ_vars(char **eargv, int eargc)
 {
-	while(eargc > 0) {
-		// get the index of the '=' char
-		int idx = block_contains(eargv[0], '=');
-
-		char key[ARGSIZE];
-		char value[ARGSIZE];
-
-		get_environ_key(eargv[0], key);
-		get_environ_value(eargv[0], value, idx);
-
-		setenv(key, value, 1);
-		
-		eargc--;
+	for(int i = 0; i < eargc; i++) {
+		int idx = block_contains(eargv[i], '=');
+		if (idx >= 0) {
+			char key[BUFLEN];
+			char value[BUFLEN];
+			get_environ_key(eargv[i], key);
+			get_environ_value(eargv[i], value, idx);
+	
+			setenv(key, value, 1);
+		}
+		else{
+			perror("Error: argumento/s invalido/s");
+			exit(-1);
+		}
 	}
 }
 
@@ -109,7 +110,7 @@ exec_cmd(struct cmd *cmd)
 	switch (cmd->type) {
 	case EXEC:
 		e = (struct execcmd *) cmd;
-		set_environ_vars(e->argv, e->eargc); 
+		set_environ_vars(e->eargv, e->eargc); 
 		int op_result = execvp(e->argv[0], e->argv);
 		if (op_result < 0) {
 			perror("ERROR: Execvp failed on Exec call");
