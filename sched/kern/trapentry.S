@@ -81,6 +81,6 @@ _alltraps:
  	pushl %ds    # Guardo el valor de %ds
     pushl %es    # Guardo el valor de %es
     pushal       # Guardo los registros generales
-    pushl %esp   # Guardo el valor de %esp, que esta apuntando al trapframe
+    pushl %esp   # Guardo el puntero de la pila %esp
 
     call trap    # LLamado a trap para manejar la interrupcion
