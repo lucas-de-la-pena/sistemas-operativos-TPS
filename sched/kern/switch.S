@@ -8,27 +8,27 @@
  */
 
 .globl context_switch;
-context_switch:  ;Recibe structTrapframe *tf por EDI --> JOS x86-32. Sintaxis INTEL
-	mov edi, [edi + 0]      ; reg_edi --> cada campo es de 4 bytes
-	mov esi, [edi + 4]      ; reg_esi
-	mov ebp, [edi + 8]      ; reg_ebp
-	mov ebx, [edi + 16]     ; reg_ebx
-	mov edx, [edi + 20]     ; reg_edx
-	mov ecx, [edi + 24]     ; reg_ecx
-	mov eax, [edi + 28]     ; reg_eax
+context_switch:  # Recibe structTrapframe *tf por %EDI --> JOS x86-32. 
+    movl 0(%edi), %edi      # reg_edi --> cada campo es de 4 bytes
+    movl 4(%edi), %esi      # reg_esi
+    movl 8(%edi), %ebp      # reg_ebp
+    movl 16(%edi), %ebx     # reg_ebx
+    movl 20(%edi), %edx     # reg_edx
+    movl 24(%edi), %ecx     # reg_ecx
+    movl 28(%edi), %eax     # reg_eax
 
-	;Apilo los valores para iret
-    ;Estan despuas de los registros de PushRegs:
-    ;es, ds, trapno, err, eip, cs, eflags, esp, ss
-    push dword [edi + 32]    ; tf_es
-    push dword [edi + 36]    ; tf_ds
-    push dword [edi + 40]    ; tf_trapno
-    push dword [edi + 44]    ; tf_err
-    push dword [edi + 48]    ; tf_eip
-    push dword [edi + 52]    ; tf_cs
-    push dword [edi + 56]    ; tf_eflags
-    push dword [edi + 60]    ; tf_esp
-    push dword [edi + 64]    ; tf_ss
+    # Apilo los valores para iret
+    # Están después de los registros de PushRegs:
+    # es, ds, trapno, err, eip, cs, eflags, esp, ss
+    pushl 32(%edi)          # tf_es
+    pushl 36(%edi)          # tf_ds
+    pushl 40(%edi)          # tf_trapno
+    pushl 44(%edi)          # tf_err
+    pushl 48(%edi)          # tf_eip
+    pushl 52(%edi)          # tf_cs
+    pushl 56(%edi)          # tf_eflags
+    pushl 60(%edi)          # tf_esp
+    pushl 64(%edi)          # tf_ss
 
 	iret
 
