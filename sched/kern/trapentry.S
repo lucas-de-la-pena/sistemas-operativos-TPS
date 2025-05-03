@@ -78,3 +78,9 @@ TRAPHANDLER_NOEC(trap48, T_SYSCALL)
  * Your code here for _alltraps
  */
 _alltraps:
+ 	pushl %ds    # Guardo el valor de %ds
+    pushl %es    # Guardo el valor de %es
+    pushal       # Guardo los registros generales
+    pushl %esp   # Guardo el puntero de la pila %esp
+
+    call trap    # LLamado a trap para manejar la interrupcion
