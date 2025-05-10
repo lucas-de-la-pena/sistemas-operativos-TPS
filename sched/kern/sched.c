@@ -28,6 +28,24 @@ sched_yield(void)
 	// below to halt the cpu.
 
 	// Your code here - Round robin
+
+	int i, start;
+	start = curenv ? ENVX(curenv->env_id) : 0;
+
+	for (i = 1; i <= NENV; i++) {
+		int idx = (start + i) % NENV;
+		if (envs[idx].env_status == ENV_RUNNABLE) {
+			env_run(&envs[idx]); // Cambiamos de contexto a ese entorno
+		}
+	}
+
+	// Si no hay ninguno RUNNABLE, pero el que ya estaba corriendo en este CPU sigue en estado RUNNING, lo seguimos usando
+	if (curenv && curenv->env_status == ENV_RUNNING) {
+		env_run(curenv);
+	}
+
+	// No hay entornos para correr, así que detenemos la CPU
+	sched_halt();
 #endif
 
 #ifdef SCHED_PRIORITIES
@@ -80,7 +98,7 @@ sched_halt(void)
 	// Mark that this CPU is in the HALT state, so that when
 	// timer interupts come in, we know we should re-acquire the
 	// big kernel lock
-	xchg(&thiscpu->cpu_status, CPU_HALTED);
+	xchg(&cpu_status, CPU_HALTED);
 
 	// Release the big kernel lock as if we were "leaving" the kernel
 	unlock_kernel();
@@ -98,5 +116,5 @@ sched_halt(void)
 	             "hlt\n"
 	             "jmp 1b\n"
 	             :
-	             : "a"(thiscpu->cpu_ts.ts_esp0));
+	             : "a"(cpu_ts.ts_esp0));
 }
