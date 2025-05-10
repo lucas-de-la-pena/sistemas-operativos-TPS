@@ -35,11 +35,9 @@ sched_yield(void)
 	for (i = 1; i <= NENV; i++) {
 		int idx = (start + i) % NENV;
 		if (envs[idx].env_status == ENV_RUNNABLE) {
-			env_run(&envs[idx]); // Cambiamos de contexto a ese entorno
+			env_run(&envs[idx]);  
 		}
 	}
-
-	// Si no hay ninguno RUNNABLE, pero el que ya estaba corriendo en este CPU sigue en estado RUNNING, lo seguimos usando
 	if (curenv && curenv->env_status == ENV_RUNNING) {
 		env_run(curenv);
 	}
