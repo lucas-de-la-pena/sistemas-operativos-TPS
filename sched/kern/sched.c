@@ -98,7 +98,7 @@ sched_halt(void)
 	// Mark that this CPU is in the HALT state, so that when
 	// timer interupts come in, we know we should re-acquire the
 	// big kernel lock
-	xchg(thiscpu->&cpu_status, CPU_HALTED);
+	xchg(&thiscpu->cpu_status, CPU_HALTED);
 
 	// Release the big kernel lock as if we were "leaving" the kernel
 	unlock_kernel();
