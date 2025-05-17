@@ -38,9 +38,10 @@ sched_yield(void)
 			env_run(&envs[idx]);
 		}
 	}
-	if (curenv && curenv->env_status == ENV_RUNNING && curenv->env_cpunum == thiscpu->cpu_id) {
-		env_run(curenv);
-	}
++	if (curenv && curenv->env_status == ENV_RUNNING &&
++	    curenv->env_cpunum == thiscpu->cpu_id) {
+ 		env_run(curenv);
+ 	}
 
 	// No hay entornos para correr, así que detenemos la CPU
 	sched_halt();
