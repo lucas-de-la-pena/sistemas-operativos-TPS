@@ -50,15 +50,39 @@ sched_yield(void)
 #endif
 
 #ifdef SCHED_PRIORITIES
-	// Implement simple priorities scheduling.
-	//
-	// Environments now have a "priority" so it must be consider
-	// when the selection is performed.
-	//
-	// Be careful to not fall in "starvation" such that only one
-	// environment is selected and run every time.
+    struct Env *chosen_env = NULL;
+    int best_priority = 0x7FFFFFFF;
+    int start_idx = 0;
 
-	// Your code here - Priorities
+    if (thiscpu->cpu_env) // buscamos el siguiente entorno a ejecutar a partir del actual, si no existe proceso corriendo se empieza desde 0
+        start_idx = (ENVX(thiscpu->cpu_env->env_id) + 1) % NENV; //arranco desde el siguiente al proceso actual, pongo el modulo para que no se pase de NENV
+
+    // encontramos la mejor prioridad
+    for (int i = 0; i < NENV; i++) {
+        int idx = (start_idx + i) % NENV;
+        struct Env *e = &envs[idx];
+        if (e->env_status == ENV_RUNNABLE && e->env_priority < best_priority)
+            best_priority = e->env_priority;
+    }
+
+    // elegimos el primer runnable con esa prioridad
+    for (int i = 0; i < NENV; i++) {
+        int idx = (start_idx + i) % NENV;
+        struct Env *e = &envs[idx];
+        if (e->env_status == ENV_RUNNABLE && e->env_priority == best_priority) {
+            chosen_env = e;
+            break;
+        }
+    }
+
+    if (chosen_env)
+        env_run(chosen_env);
+
+    // Si el actual sigue corriendo, lo seguimos ejecutando
+    if (curenv && curenv->env_status == ENV_RUNNING && curenv->env_cpunum == thiscpu->cpu_id)
+        env_run(curenv);
+
+    sched_halt();
 #endif
 
 	// Without scheduler, keep runing the last environment while it exists
