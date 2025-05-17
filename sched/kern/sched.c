@@ -38,8 +38,8 @@ sched_yield(void)
 			env_run(&envs[idx]);
 		}
 	}
-+	if (curenv && curenv->env_status == ENV_RUNNING &&
-+	    curenv->env_cpunum == thiscpu->cpu_id) {
+	if (curenv && curenv->env_status == ENV_RUNNING &&
+	    curenv->env_cpunum == thiscpu->cpu_id) {
  		env_run(curenv);
  	}
 
