@@ -33,15 +33,16 @@ sched_yield(void)
 	start = curenv ? ENVX(curenv->env_id) + 1 : 0;
 
 	for (i = 0; i < NENV; i++) {
-		int idx = (start + i) % NENV;
-		if (envs[idx].env_status == ENV_RUNNABLE) {
-			env_run(&envs[idx]);
-		}
+    	int idx = (start + i) % NENV;
+    	if (envs[idx].env_status == ENV_RUNNABLE) {
+        	env_run(&envs[idx]);
+    	}
 	}
+
 	if (curenv && curenv->env_status == ENV_RUNNING &&
-	    curenv->env_cpunum == thiscpu->cpu_id) {
- 		env_run(curenv);
- 	}
+    	curenv->env_cpunum == thiscpu->cpu_id) {
+    	env_run(curenv);
+	}
 
 	// No hay entornos para correr, así que detenemos la CPU
 	sched_halt();
