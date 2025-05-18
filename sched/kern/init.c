@@ -41,6 +41,8 @@ i386_init(void)
 	env_init();
 	trap_init();
 
+	stats_init();
+
 	// Lab 4 multiprocessor initialization functions
 	mp_init();
 	lapic_init();

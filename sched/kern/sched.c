@@ -7,6 +7,43 @@
 
 void sched_halt(void);
 
+uint32_t total_sched_yield_calls = 0;
+
+void stats_init(void) {
+    total_sched_yield_calls = 0;
+    // Limpiamos el historial por si las moscas
+    cprintf("Sistema de estadisticas del scheduler listo!\n");
+}
+
+// stats_display: Muestra las estadisticas recolectadas.
+void stats_display(void) {
+    cprintf("\n-------------------------------------------------------\n");
+    cprintf("--- Estadisticas del Scheduler ---\n");
+    cprintf("-------------------------------------------------------\n");
+
+    // 1. Total de llamadas a sched_yield
+    cprintf("Total de veces que se llamo al scheduler (sched_yield): %u\n", total_sched_yield_calls);
+
+    // 2. Numero de ejecuciones por proceso (y su prioridad actual)
+    cprintf("\n--- Resumen por Proceso (estado actual) ---\n");
+    cprintf("ID Proceso | Prioridad | Veces Ejecutado\n");
+    cprintf("-----------|-----------|----------------\n");
+    int procesos_activos = 0;
+    for (int i = 0; i < NENV; i++) {
+        if (envs[i].env_status != ENV_FREE) { // Solo si el proceso "existe"
+            cprintf("0x%08x | %-9d | %-15u\n",
+                    envs[i].env_id,
+                    envs[i].env_priority, // Tomamos la prioridad actual
+                    envs[i].env_runs);    // El contador de ejecuciones que ya tiene JOS
+            procesos_activos++;
+        }
+    }
+    if (procesos_activos == 0) {
+        cprintf(" (No hay procesos activos o creados para mostrar stats)\n");
+    }
+    cprintf("-------------------------------------------------------\n");
+}
+
 // Choose a user environment to run and run it.
 void
 sched_yield(void)
@@ -50,6 +87,7 @@ sched_yield(void)
 #endif
 
 #ifdef SCHED_PRIORITIES
+	total_sched_yield_calls++;
     struct Env *chosen_env = NULL;
     int best_priority = 0x7FFFFFFF;
     int start_idx = 0;
@@ -75,12 +113,15 @@ sched_yield(void)
         }
     }
 
-    if (chosen_env)
-        env_run(chosen_env);
+    if (chosen_env) {
+		chosen_env->env_priority++;
+		env_run(chosen_env);
+	}
 
-    // Si el actual sigue corriendo, lo seguimos ejecutando
-    if (curenv && curenv->env_status == ENV_RUNNING && curenv->env_cpunum == thiscpu->cpu_id)
-        env_run(curenv);
+    if (!chosen_env && curenv && curenv->env_status == ENV_RUNNING &&
+        curenv->env_cpunum == thiscpu->cpu_id) {
+        env_run(curenv); 
+    }
 
     sched_halt();
 #endif
