@@ -517,11 +517,10 @@ env_run(struct Env *e)
 	e->env_runs++;
 	env_load_pgdir(e);
 
-	// Registrar el cpu antes de unlock_kernel
 	curenv->env_cpunum = cpunum();
 	unlock_kernel();
 
 	context_switch(&e->env_tf);
 
-	panic("env_run not yet implemented"); /* mostly to placate the compiler */
+	// No debería llegar aquí
 }

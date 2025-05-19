@@ -21,7 +21,10 @@ stats_init(void)
 {
 	stats.total_sched_yield_calls = 0;
 	env_history_index = 0;
-	// Limpiamos el historial por si las moscas
+	for (int i = 0; i < NENV; i++) {
+		stats.total_executions[i] = 0;
+		stats.env_history[i] = 0;
+	}
 	cprintf("Sistema de estadisticas del scheduler listo!\n");
 }
 
@@ -86,21 +89,24 @@ sched_yield(void)
 		int idx = (start + i) % NENV;
 		if (envs[idx].env_status == ENV_RUNNABLE) {
 			stats.total_executions[idx]++;
-			stats.env_history[env_history_index++] = idx;
+			if (env_history_index < NENV)
+				stats.env_history[env_history_index++] = idx;
 			env_run(&envs[idx]);
+			return;
 		}
 	}
 
 	if (curenv && curenv->env_status == ENV_RUNNING &&
 	    curenv->env_cpunum == thiscpu->cpu_id) {
 		stats.total_executions[ENVX(curenv->env_id)]++;
-		stats.env_history[env_history_index++] = ENVX(curenv->env_id);
+		if (env_history_index < NENV)
+			stats.env_history[env_history_index++] = ENVX(curenv->env_id);
 		env_run(curenv);
+		return;
 	}
 
-	// No hay entornos para correr, así que detenemos la CPU
 	sched_halt();
-
+	return;
 #endif
 
 #ifdef SCHED_PRIORITIES
@@ -139,26 +145,30 @@ sched_yield(void)
 	if (chosen_env) {
 		chosen_env->env_priority++;
 		stats.total_executions[ENVX(chosen_env->env_id)]++;
-		stats.env_history[env_history_index++] = ENVX(chosen_env->env_id);
+		if (env_history_index < NENV)
+			stats.env_history[env_history_index++] = ENVX(chosen_env->env_id);
 		env_run(chosen_env);
+		return;
 	}
 
 	if (!chosen_env && curenv && curenv->env_status == ENV_RUNNING &&
 	    curenv->env_cpunum == thiscpu->cpu_id) {
 		stats.total_executions[ENVX(curenv->env_id)]++;
-		stats.env_history[env_history_index++] = ENVX(curenv->env_id);
+		if (env_history_index < NENV)
+			stats.env_history[env_history_index++] = ENVX(curenv->env_id);
 		env_run(curenv);
+		return;
 	}
 
 	sched_halt();
+	return;
 #endif
 
-	// Without scheduler, keep runing the last environment while it exists
 	if (curenv) {
 		env_run(curenv);
+		return;
 	}
 
-	// sched_halt never returns
 	sched_halt();
 }
 
