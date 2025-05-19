@@ -151,6 +151,8 @@ sys_exofork(void)
 	newenv->env_status = ENV_NOT_RUNNABLE;
 	newenv->env_tf = curenv->env_tf;
 	newenv->env_tf.tf_regs.reg_eax = 0;
+	
+	newenv->env_priority = curenv->env_priority;
 
 	return newenv->env_id;
 	// panic("sys_exofork not implemented");
@@ -425,6 +427,43 @@ sys_ipc_recv(void *dstva)
 	return 0;
 }
 
+// Get current process priority
+
+static int
+sys_get_priority(int envid)
+{
+	struct Env *env;
+	int r;
+	if ((r = envid2env(envid, &env, 0)))
+		return r;
+
+	return env->env_priority;
+}
+
+// Set the priority of the process with envid to priority
+static int
+sys_set_priority(int envid, int priority)
+{
+	if (priority < 0){
+		return -E_INVAL;
+	}
+
+	struct Env *env;
+	int r;
+
+	if ((r = envid2env(envid, &env, 0)) < 0)
+		return r;
+
+	// Just to avoid setting the same value
+	if (env->env_priority == priority)
+		return priority;
+	
+	
+	
+	env->env_priority = priority;
+	return 0;
+}
+
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
@@ -446,6 +485,7 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_exofork();
 	case SYS_env_set_status:
 		return sys_env_set_status(a1, a2);
+
 	case SYS_page_alloc:
 		return sys_page_alloc(a1, (void *) a2, a3);
 	case SYS_page_map:
@@ -460,6 +500,10 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_env_set_pgfault_upcall(a1, (void *) a2);
 	case SYS_yield:
 		sys_yield();  // No return
+	case SYS_get_priority:
+		return sys_get_priority(a1);
+	case SYS_set_priority:
+		return sys_set_priority(a1, a2);
 	default:
 		return -E_INVAL;
 	}

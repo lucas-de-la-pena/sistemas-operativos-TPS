@@ -41,6 +41,8 @@ i386_init(void)
 	env_init();
 	trap_init();
 
+	stats_init();
+
 	// Lab 4 multiprocessor initialization functions
 	mp_init();
 	lapic_init();
@@ -75,10 +77,10 @@ i386_init(void)
 
 	// Eliminar esta llamada una vez completada la parte 1
 	// e implementado sched_yield().
-	env_run(&envs[0]);
+	// env_run(&envs[0]);
 
 	// Schedule and run the first user environment!
-	// sched_yield();
+	sched_yield();
 }
 
 // While boot_aps is booting a given CPU, it communicates the per-core
