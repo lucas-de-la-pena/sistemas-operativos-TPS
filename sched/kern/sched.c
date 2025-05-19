@@ -111,9 +111,10 @@ sched_yield(void)
 
 	if (thiscpu->cpu_env)  // buscamos el siguiente entorno a ejecutar a partir
 	                       // del actual, si no existe proceso corriendo se empieza desde 0
-		start_idx = (ENVX(thiscpu->cpu_env->env_id) + 1) %
-		            NENV;  // arranco desde el siguiente al proceso actual,
-		                   // pongo el modulo para que no se pase de NENV
+		start_idx =
+		        (ENVX(thiscpu->cpu_env->env_id) + 1) %
+		        NENV;  // arranco desde el siguiente al proceso actual,
+		               // pongo el modulo para que no se pase de NENV
 
 	// encontramos la mejor prioridad
 	for (int i = 0; i < NENV; i++) {
