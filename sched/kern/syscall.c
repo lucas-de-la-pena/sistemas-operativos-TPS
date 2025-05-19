@@ -151,7 +151,7 @@ sys_exofork(void)
 	newenv->env_status = ENV_NOT_RUNNABLE;
 	newenv->env_tf = curenv->env_tf;
 	newenv->env_tf.tf_regs.reg_eax = 0;
-	
+
 	newenv->env_priority = curenv->env_priority;
 
 	return newenv->env_id;
@@ -444,7 +444,7 @@ sys_get_priority(int envid)
 static int
 sys_set_priority(int envid, int priority)
 {
-	if (priority < 0){
+	if (priority < 0) {
 		return -E_INVAL;
 	}
 
@@ -457,9 +457,8 @@ sys_set_priority(int envid, int priority)
 	// Just to avoid setting the same value
 	if (env->env_priority == priority)
 		return priority;
-	
-	
-	
+
+
 	env->env_priority = priority;
 	return 0;
 }

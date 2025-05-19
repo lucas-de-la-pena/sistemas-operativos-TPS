@@ -9,10 +9,10 @@
 extern struct Env *envs;           // All environments
 #define curenv (thiscpu->cpu_env)  // Current environment
 extern struct Segdesc gdt[];
-            
+
 extern uint32_t total_sched_yield_calls;
 
-void stats_init(void);                            
+void stats_init(void);
 void stats_display(void);
 
 void env_init(void);
