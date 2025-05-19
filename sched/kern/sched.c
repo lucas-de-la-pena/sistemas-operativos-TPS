@@ -103,7 +103,7 @@ sched_yield(void)
 
 #endif
 
-	// #ifdef SCHED_PRIORITIES
+#ifdef SCHED_PRIORITIES
 	stats.total_sched_yield_calls++;
 	struct Env *chosen_env = NULL;
 	int best_priority = 0x7FFFFFFF;
@@ -151,7 +151,7 @@ sched_yield(void)
 	}
 
 	sched_halt();
-	// #endif
+#endif
 
 	// Without scheduler, keep runing the last environment while it exists
 	if (curenv) {
