@@ -100,7 +100,8 @@ sched_yield(void)
 	    curenv->env_cpunum == thiscpu->cpu_id) {
 		stats.total_executions[ENVX(curenv->env_id)]++;
 		if (env_history_index < NENV)
-			stats.env_history[env_history_index++] = ENVX(curenv->env_id);
+			stats.env_history[env_history_index++] =
+			        ENVX(curenv->env_id);
 		env_run(curenv);
 		return;
 	}
@@ -146,7 +147,8 @@ sched_yield(void)
 		chosen_env->env_priority++;
 		stats.total_executions[ENVX(chosen_env->env_id)]++;
 		if (env_history_index < NENV)
-			stats.env_history[env_history_index++] = ENVX(chosen_env->env_id);
+			stats.env_history[env_history_index++] =
+			        ENVX(chosen_env->env_id);
 		env_run(chosen_env);
 		return;
 	}
@@ -155,7 +157,8 @@ sched_yield(void)
 	    curenv->env_cpunum == thiscpu->cpu_id) {
 		stats.total_executions[ENVX(curenv->env_id)]++;
 		if (env_history_index < NENV)
-			stats.env_history[env_history_index++] = ENVX(curenv->env_id);
+			stats.env_history[env_history_index++] =
+			        ENVX(curenv->env_id);
 		env_run(curenv);
 		return;
 	}
