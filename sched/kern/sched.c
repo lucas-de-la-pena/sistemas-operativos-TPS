@@ -7,10 +7,18 @@
 
 void sched_halt(void);
 
-uint32_t total_sched_yield_calls = 0;
+struct Statistics {
+	int total_sched_yield_calls;
+	int total_executions[NENV];
+	int env_history[NENV];
+};
+
+static struct Statistics stats;
+static int env_history_index = 0;
 
 void stats_init(void) {
-    total_sched_yield_calls = 0;
+    stats.total_sched_yield_calls = 0;
+	env_history_index = 0;
     // Limpiamos el historial por si las moscas
     cprintf("Sistema de estadisticas del scheduler listo!\n");
 }
@@ -22,25 +30,22 @@ void stats_display(void) {
     cprintf("-------------------------------------------------------\n");
 
     // 1. Total de llamadas a sched_yield
-    cprintf("Total de veces que se llamo al scheduler (sched_yield): %u\n", total_sched_yield_calls);
+    cprintf("Total de veces que se llamo al scheduler (sched_yield): %u\n", stats.total_sched_yield_calls);
 
-    // 2. Numero de ejecuciones por proceso (y su prioridad actual)
-    cprintf("\n--- Resumen por Proceso (estado actual) ---\n");
-    cprintf("ID Proceso | Prioridad | Veces Ejecutado\n");
-    cprintf("-----------|-----------|----------------\n");
-    int procesos_activos = 0;
-    for (int i = 0; i < NENV; i++) {
-        if (envs[i].env_status != ENV_FREE) { // Solo si el proceso "existe"
-            cprintf("0x%08x | %-9d | %-15u\n",
-                    envs[i].env_id,
-                    envs[i].env_priority, // Tomamos la prioridad actual
-                    envs[i].env_runs);    // El contador de ejecuciones que ya tiene JOS
-            procesos_activos++;
-        }
-    }
-    if (procesos_activos == 0) {
-        cprintf(" (No hay procesos activos o creados para mostrar stats)\n");
-    }
+	cprintf("Total de ejecuciones por proceso:\n");
+	// 2. Números de ejecuciones por proceso
+	for(int i = 0; i < NENV; i++) {
+		if (stats.total_executions[i] == 0) continue; // No contamos los procesos libres
+		char* string = stats.total_executions[i] > 1 ? "ejecuciones" : "ejecución";
+		cprintf("Proceso %d: %u %s\n", i, stats.total_executions[i], string);
+	}
+
+	// 3. Historial de procesos ejecutados
+	cprintf("\n--- Historial de procesos ejecutados ---\n");
+	for(int i = 0; i < env_history_index; i++) {
+		cprintf("Proceso %d ejecutado\n", stats.env_history[i]);
+	}
+
     cprintf("-------------------------------------------------------\n");
 }
 
@@ -48,6 +53,7 @@ void stats_display(void) {
 void
 sched_yield(void)
 {
+	stats.total_sched_yield_calls++;
 #ifdef SCHED_ROUND_ROBIN
 	// Implement simple round-robin scheduling.
 	//
@@ -72,12 +78,16 @@ sched_yield(void)
 	for (i = 0; i < NENV; i++) {
     	int idx = (start + i) % NENV;
     	if (envs[idx].env_status == ENV_RUNNABLE) {
+			stats.total_executions[idx]++;
+			stats.env_history[env_history_index++] = idx;
         	env_run(&envs[idx]);
     	}
 	}
 
 	if (curenv && curenv->env_status == ENV_RUNNING &&
     	curenv->env_cpunum == thiscpu->cpu_id) {
+		stats.total_executions[ENVX(curenv->env_id)]++;
+		stats.env_history[env_history_index++] = ENVX(curenv->env_id);
     	env_run(curenv);
 	}
 
@@ -86,9 +96,9 @@ sched_yield(void)
 
 #endif
 
-#ifdef SCHED_PRIORITIES
-	total_sched_yield_calls++;
-    struct Env *chosen_env = NULL;
+// #ifdef SCHED_PRIORITIES
+	stats.total_sched_yield_calls++;
+	struct Env *chosen_env = NULL;
     int best_priority = 0x7FFFFFFF;
     int start_idx = 0;
 
@@ -115,16 +125,20 @@ sched_yield(void)
 
     if (chosen_env) {
 		chosen_env->env_priority++;
+		stats.total_executions[ENVX(chosen_env->env_id)]++;
+		stats.env_history[env_history_index++] = ENVX(chosen_env->env_id);
 		env_run(chosen_env);
 	}
 
     if (!chosen_env && curenv && curenv->env_status == ENV_RUNNING &&
         curenv->env_cpunum == thiscpu->cpu_id) {
+		stats.total_executions[ENVX(curenv->env_id)]++;
+		stats.env_history[env_history_index++] = ENVX(curenv->env_id);
         env_run(curenv); 
     }
 
     sched_halt();
-#endif
+// #endif
 
 	// Without scheduler, keep runing the last environment while it exists
 	if (curenv) {
@@ -153,6 +167,9 @@ sched_halt(void)
 	}
 	if (i == NENV) {
 		cprintf("No runnable environments in the system!\n");
+
+		stats_display();
+			
 		while (1)
 			monitor(NULL);
 	}
