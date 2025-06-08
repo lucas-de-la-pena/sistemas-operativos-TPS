@@ -1,16 +1,4 @@
-#define FUSE_USE_VERSION 30
-
-#include <fuse.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/file.h>
-#include <string.h>
-#include <stdlib.h>
-#include <errno.h>
-
-#define DEFAULT_FILE_DISK "persistence_file.fisopfs"
+#include "fisops.h"
 
 char *filedisk = DEFAULT_FILE_DISK;
 
@@ -57,8 +45,6 @@ fisopfs_readdir(const char *path,
 	return -ENOENT;
 }
 
-#define MAX_CONTENIDO 100
-static char fisop_file_contenidos[MAX_CONTENIDO] = "hola fisopfs!\n";
 
 static int
 fisopfs_read(const char *path,
