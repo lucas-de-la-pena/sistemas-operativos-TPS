@@ -11,6 +11,8 @@ struct super_block {
 };
 ```
 
+![Estructura del File System](doc/estructura.png)
+
 ####  Estructuración de  los Inodos
 
 La metadata de los archivos y directorios se guardan en los mismos. Cada inodo posee:
