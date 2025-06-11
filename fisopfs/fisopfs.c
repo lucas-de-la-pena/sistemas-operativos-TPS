@@ -10,7 +10,7 @@ char nombre_archivo_disco[MAX_PATH] = "fs.vfsimg";
 int
 get_and_validate_inode(const char *path, int expected_type, struct inode **inode_out)
 {
-	int idx = get_index_inodo(path);
+	int idx = get_index_inode(path);
 	if (idx < 0) {
 		fprintf(stderr, "[Debug] Error: %s not found.\n", path);
 		return -ENOENT;
@@ -230,7 +230,12 @@ fisopfs_init(struct fuse_conn_info *conn, struct fuse_config *cfg)
 	if (!archivo_disco) {
 		initialize_fs();
 	} else {
-		fread(&super_b, sizeof(super_b), 1, archivo_disco);
+		int read = fread(&super_b, sizeof(super_b), 1, archivo_disco);
+		if (read != 1) {
+			fprintf(stderr,
+			        "Failed to read superblock from disk image.\n");
+			return -1;
+		}
 		fclose(archivo_disco);
 	}
 
@@ -281,7 +286,9 @@ static struct fuse_operations operations = { .getattr = fisopfs_getattr,
 	                                     .rmdir = fisopfs_rmdir,
 	                                     .unlink = fisopfs_unlink,
 	                                     .utime = fisopfs_updatetime,
-	                                     .truncate = fisopfs_truncate };
+	                                     .truncate = fisopfs_truncate,
+	                                     .init = fisopfs_init,
+	                                     .destroy = fisopfs_destroy };
 
 int
 main(int argc, char *argv[])
@@ -302,11 +309,9 @@ main(int argc, char *argv[])
 		}
 	}
 
-	initialize_fs();
+	// initialize_fs();
 
 	// El cuarto parámetro en versiones superior a Fuse 2.9.9 es obsoleto
 	// y puede marcar un warning, pero es necesario para la version del TP
-	int ret = fuse_main(argc, argv, &operations, NULL);
-	fisopfs_destroy(NULL);
-	return ret;
+	return fuse_main(argc, argv, &operations, NULL);
 }
