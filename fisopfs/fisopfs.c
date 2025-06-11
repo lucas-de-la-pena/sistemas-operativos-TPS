@@ -264,7 +264,7 @@ fisopfs_destroy()
 // ----------------------------------
 //          FUSE Bindings
 // ----------------------------------
-static struct fuse_operations operations = { .getattr = fisopfs_getattr, 
+static struct fuse_operations operations = { .getattr = fisopfs_getattr,
 	                                     .getdir = fisopfs_readdir,
 	                                     .read = fisopfs_read,
 	                                     .mknod = fisopfs_create,

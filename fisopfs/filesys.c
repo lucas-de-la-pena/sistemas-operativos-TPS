@@ -9,7 +9,8 @@ struct super_block super_b = {};
 
 // Inicializa el sistema de archivos con una estructura base.
 // Se establece el directorio raíz y se limpian los mapas de inodos.
-int initialize_fs()
+int
+initialize_fs()
 {
 	memset(super_b.inodes, 0, sizeof(super_b.inodes));
 	memset(super_b.bitmap_inodes, 0, sizeof(super_b.bitmap_inodes));
@@ -32,7 +33,8 @@ int initialize_fs()
 	return 0;
 }
 
-int save_fs(char *save_file)
+int
+save_fs(char *save_file)
 {
 	return 0;
 }
@@ -41,23 +43,27 @@ int save_fs(char *save_file)
 // OPERACIONES SOBRE ARCHIVOS
 // ============================
 
-int read_file(char *path)
+int
+read_file(char *path)
 {
 	return 0;
 }
 
 // Quita la primera barra del path y devuelve solo el nombre del archivo/directorio.
-char *remove_slash(const char *path)
+char *
+remove_slash(const char *path)
 {
 	size_t len = strlen(path);
 	char *temp = malloc(len);
-	if (!temp) return NULL;
+	if (!temp)
+		return NULL;
 
 	memcpy(temp, path + 1, len - 1);
 	temp[len - 1] = '\0';
 
 	const char *last = strrchr(path, '/');
-	if (!last) return temp;
+	if (!last)
+		return temp;
 
 	size_t final_len = strlen(last + 1);
 	char *final_path = malloc(final_len + 1);
@@ -74,12 +80,15 @@ char *remove_slash(const char *path)
 }
 
 // Busca el índice de un inodo por su path
-int get_index_inode(const char *path)
+int
+get_index_inode(const char *path)
 {
-	if (strcmp(path, ROOT_PATH) == 0) return 0;
+	if (strcmp(path, ROOT_PATH) == 0)
+		return 0;
 
 	char *clean_path = remove_slash(path);
-	if (!clean_path) return -1;
+	if (!clean_path)
+		return -1;
 
 	for (int i = 0; i < MAX_INODES; i++) {
 		if (strcmp(clean_path, super_b.inodes[i].path) == 0) {
@@ -93,16 +102,20 @@ int get_index_inode(const char *path)
 }
 
 // Extrae el path del directorio padre de un path dado
-void get_path_father(char *path_father)
+void
+get_path_father(char *path_father)
 {
 	char *last = strrchr(path_father, '/');
-	if (last) *last = '\0';
-	else path_father[0] = '\0';
+	if (last)
+		*last = '\0';
+	else
+		path_father[0] = '\0';
 }
 
 // Busca el siguiente índice libre de inodo disponible.
 // Retorna ENOSPC si no hay espacio o EEXIST si ya existe el path.
-int next_free_inode(const char *path)
+int
+next_free_inode(const char *path)
 {
 	bool found = false;
 	int free_index = -ENOSPC;
@@ -116,7 +129,9 @@ int next_free_inode(const char *path)
 	}
 
 	if (found) {
-		fprintf(stderr, "[Debug] Error next_free_inode: %s\n", strerror(errno));
+		fprintf(stderr,
+		        "[Debug] Error next_free_inode: %s\n",
+		        strerror(errno));
 		errno = EEXIST;
 		return -EEXIST;
 	}
@@ -131,7 +146,8 @@ Errores posibles:
 - ENOSPC: sin espacio
 - EEXIST: ya existe
 */
-int create_file(const char *path, mode_t mode, int type)
+int
+create_file(const char *path, mode_t mode, int type)
 {
 	if (strlen(path) - 1 > MAX_CONTENT) {
 		fprintf(stderr, "[Debug] Error create_file: %s\n", strerror(errno));
@@ -140,7 +156,8 @@ int create_file(const char *path, mode_t mode, int type)
 	}
 
 	char *name = remove_slash(path);
-	if (!name) return -1;
+	if (!name)
+		return -1;
 
 	int idx = next_free_inode(name);
 	if (idx < 0) {
@@ -148,18 +165,14 @@ int create_file(const char *path, mode_t mode, int type)
 		return idx;
 	}
 
-	struct inode node = {
-		.type = type,
-		.mode = mode,
-		.size = 0,
-		.id_user = getuid(),
-		.id_grup = getgid(),
-		.stats_info = {
-			.creation = time(NULL),
-			.last_acc = time(NULL),
-			.last_mod = time(NULL)
-		}
-	};
+	struct inode node = { .type = type,
+		              .mode = mode,
+		              .size = 0,
+		              .id_user = getuid(),
+		              .id_grup = getgid(),
+		              .stats_info = { .creation = time(NULL),
+		                              .last_acc = time(NULL),
+		                              .last_mod = time(NULL) } };
 	strcpy(node.path, name);
 
 	if (type == FS_FILE) {
@@ -186,14 +199,17 @@ int create_file(const char *path, mode_t mode, int type)
 }
 
 // Elimina un archivo (si existe y no es un directorio).
-int delete_file(char *path)
+int
+delete_file(char *path)
 {
 	for (int i = 0; i < MAX_INODES; i++) {
 		if (super_b.bitmap_inodes[i] &&
 		    strcmp(super_b.inodes[i].path, path) == 0) {
 			struct inode *f = &super_b.inodes[i];
 			if (f->type != FS_FILE) {
-				fprintf(stderr, "[Debug] Error: %s is not a file.\n", path);
+				fprintf(stderr,
+				        "[Debug] Error: %s is not a file.\n",
+				        path);
 				return -1;
 			}
 			memset(f, 0, sizeof(struct inode));
@@ -207,7 +223,8 @@ int delete_file(char *path)
 
 // Escribe datos en un archivo desde una posición dada.
 // Si no existe, lo crea. Maneja errores como exceso de tamaño o intento de escritura en directorio.
-int write_file(const char *path, const char *buffer, size_t size, off_t offset)
+int
+write_file(const char *path, const char *buffer, size_t size, off_t offset)
 {
 	if (offset + size > MAX_CONTENT) {
 		fprintf(stderr, "Error: Write exceeds max size.\n");
@@ -234,7 +251,7 @@ int write_file(const char *path, const char *buffer, size_t size, off_t offset)
 	}
 
 	if (node->type == FS_DIR) {
-		fprintf(stderr, "Error: Can't write on directory.\n");
+		fprintf(stderr, "Error: Cannot write in a Directory.\n");
 		return -EACCES;
 	}
 
@@ -247,8 +264,9 @@ int write_file(const char *path, const char *buffer, size_t size, off_t offset)
 	return (int) size;
 }
 
-// Devuelve estadísticas del archivo/directorio
-stats_t get_stats(char *path)
+// Devuelve estadísticas del archivo/directorio (placeholder por ahora)
+stats_t
+get_stats(char *path)
 {
 	stats_t stats = {};
 	return stats;
@@ -258,28 +276,33 @@ stats_t get_stats(char *path)
 // OPERACIONES SOBRE DIRECTORIOS
 // ============================
 
-int create_dir(const char *path, mode_t mode)
+int
+create_dir(const char *path, mode_t mode)
 {
 	return 0;
 }
 
-char *get_dir(char *path, mode_t mode)
+char *
+get_dir(char *path, mode_t mode)
 {
 	char *re = "";
 	return re;
 }
 
-int unlink(const char *path)
+int
+unlink(const char *path)
 {
 	return 0;
 }
 
-int delete_dir(const char *path)
+int
+delete_dir(const char *path)
 {
 	return 0;
 }
 
-int list_dir(char *path)
+int
+list_dir(char *path)
 {
 	return 0;
 }
