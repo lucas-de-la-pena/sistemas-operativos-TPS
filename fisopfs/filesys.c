@@ -139,13 +139,11 @@ next_free_inode(const char *path)
 	return free_index;
 }
 
-/*
-Crea un archivo o directorio nuevo y lo guarda como inodo.
-Errores posibles:
-- ENAMETOOLONG: nombre demasiado largo
-- ENOSPC: sin espacio
-- EEXIST: ya existe
-*/
+//Crea un archivo o directorio nuevo y lo guarda como inodo.
+//Errores posibles:
+//- ENAMETOOLONG: nombre demasiado largo
+//- ENOSPC: sin espacio
+//- EEXIST: ya existe
 int
 create_file(const char *path, mode_t mode, int type)
 {
