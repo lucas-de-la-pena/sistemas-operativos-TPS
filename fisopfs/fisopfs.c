@@ -301,11 +301,8 @@ main(int argc, char *argv[])
 			break;
 		}
 	}
+
 	initialize_fs();
-	if (strlen(filedisk) > MAX_PATH) {
-		fprintf(stderr, "Error: Disk file name too long.\n");
-		return -1;
-	}
 
 	// El cuarto parámetro en versiones superior a Fuse 2.9.9 es obsoleto
 	// y puede marcar un warning, pero es necesario para la version del TP
