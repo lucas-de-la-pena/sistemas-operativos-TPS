@@ -74,16 +74,16 @@ extern struct super_block super_b;
 //-----------------------------------
 
 // Devuelve el índice del inodo asociado a la ruta, o -1 si no existe
-int get_index_inodo(const char *path);
+int get_index_inode(const char *path);
 
 // Elimina un '/' final si lo hay
 char *remove_slash(const char *path);
 
 // Obtiene el path del directorio padre a partir de un path
-void get_path_padre(char *path_padre);
+void get_path_parent(char *path_parent);
 
 // Busca el siguiente inodo libre para una nueva entrada
-int next_free_inodo(const char *path);
+int next_free_inode(const char *path);
 
 
 //-----------------------------------

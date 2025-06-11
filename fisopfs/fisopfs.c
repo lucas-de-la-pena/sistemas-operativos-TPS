@@ -11,7 +11,7 @@ static int
 fisopfs_getattr(const char *path, struct stat *st)
 {
 	printf("[debug] fisopfs_getattr - path: %s\n", path);
-	int i = get_index_inodo(path);
+	int i = get_index_inode(path);
 	if (i == -1) {
 		fprintf(stderr, "[Debug] getattr: %s\n", strerror(errno));
 		errno = ENOENT;
@@ -87,7 +87,7 @@ fisopfs_read(const char *path,
 		return -EINVAL;
 	}
 
-	int i = get_index_inodo(path);
+	int i = get_index_inode(path);
 	if (i == -1) {
 		fprintf(stderr, "[Debug] Error read: %s\n", strerror(errno));
 		errno = ENOENT;
@@ -180,7 +180,7 @@ fisopfs_truncate(const char *path, off_t size)
 	if (size > MAX_CONTENT)
 		return -EFBIG;
 
-	int i = get_index_inodo(path);
+	int i = get_index_inode(path);
 	if (i == -1)
 		return -ENOENT;
 
@@ -194,7 +194,7 @@ fisopfs_truncate(const char *path, off_t size)
 static int
 fisopfs_updatetime(const char *path, const struct timespec ts[2])
 {
-	int i = get_index_inodo(path);
+	int i = get_index_inode(path);
 	if (i == -1)
 		return -ENOENT;
 

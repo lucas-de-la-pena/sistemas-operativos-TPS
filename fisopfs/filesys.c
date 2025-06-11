@@ -103,13 +103,13 @@ get_index_inode(const char *path)
 
 // Extrae el path del directorio padre de un path dado
 void
-get_path_father(char *path_father)
+get_path_parent(char *path_parent)
 {
-	char *last = strrchr(path_father, '/');
+	char *last = strrchr(path_parent, '/');
 	if (last)
 		*last = '\0';
 	else
-		path_father[0] = '\0';
+		path_parent[0] = '\0';
 }
 
 // Busca el siguiente índice libre de inodo disponible.
@@ -177,7 +177,7 @@ create_file(const char *path, mode_t mode, int type)
 		char parent[MAX_PATH];
 		strncpy(parent, path + 1, strlen(path) - 1);
 		parent[strlen(path) - 1] = '\0';
-		get_path_father(parent);
+		get_path_parent(parent);
 
 		if (strlen(parent) == 0)
 			strcpy(parent, ROOT_PATH);
