@@ -5,6 +5,30 @@ char *filedisk = DEFAULT_FILE_DISK;
 char nombre_archivo_disco[MAX_PATH] = "fs.vfsimg";
 
 // ----------------------------------
+//       General Functions
+// ----------------------------------
+int
+get_and_validate_inode(const char *path, int expected_type, struct inode **inode_out)
+{
+	int idx = get_index_inodo(path);
+	if (idx < 0) {
+		fprintf(stderr, "[Debug] Error: %s not found.\n", path);
+		return -ENOENT;
+	}
+
+	struct inode *node = &super_b.inodes[idx];
+	if (node->type != expected_type) {
+		fprintf(stderr, "[Debug] Error: %s has wrong type.\n", path);
+		return (expected_type == FS_FILE) ? -EISDIR : -ENOTDIR;
+	}
+
+	node->stats_info.last_acc = time(NULL);
+	*inode_out = node;
+	return 0;
+}
+
+
+// ----------------------------------
 //       Get Attributes
 // ----------------------------------
 static int
@@ -55,13 +79,21 @@ fisopfs_readdir(const char *path,
 	filler(buffer, ".", NULL, 0);
 	filler(buffer, "..", NULL, 0);
 
-	// Si nos preguntan por el directorio raiz, solo tenemos un archivo
-	if (strcmp(path, "/") == 0) {
-		filler(buffer, "fisop", NULL, 0);
-		return 0;
+	// Validar que el path sea un directorio
+	struct inode *inodo_dir;
+	int err = get_and_validate_inode(path, FS_DIR, &inodo_dir);
+	if (err < 0)
+		return err;
+
+	for (int i = 0; i < MAX_INODES; i++) {
+		if (super_b.bitmap_inodes[i] &&
+		    strcmp(super_b.inodes[i].directory_path, inodo_dir->path) ==
+		            0) {
+			filler(buffer, super_b.inodes[i].path, NULL, 0);
+		}
 	}
 
-	return -ENOENT;
+	return 0;
 }
 
 
@@ -81,40 +113,15 @@ fisopfs_read(const char *path,
 	       offset,
 	       size);
 
-	if (offset < 0 || size < 0) {
-		fprintf(stderr, "[Debug] Error read: %s\n", strerror(errno));
-		errno = EINVAL;
+	if (offset < 0 || size < 0)
 		return -EINVAL;
-	}
 
-	int i = get_index_inode(path);
-	if (i == -1) {
-		fprintf(stderr, "[Debug] Error read: %s\n", strerror(errno));
-		errno = ENOENT;
-		return -ENOENT;
-	}
+	struct inode *in;
+	int err = get_and_validate_inode(path, FS_FILE, &in);
+	if (err < 0)
+		return err;
 
-	struct inode *in = &super_b.inodes[i];
-	if (in->type != FS_FILE) {
-		fprintf(stderr, "[Debug] Error read: %s\n", strerror(errno));
-		errno = EISDIR;
-		return -EISDIR;
-	}
-
-	if (offset == in->size)
-		return 0;  // No hay más datos para leer
-	else if (offset > in->size) {
-		fprintf(stderr, "[Debug] Error read: %s\n", strerror(errno));
-		errno = EINVAL;
-		return -EINVAL;
-	}
-
-	size_t to_read = (in->size - offset > size) ? size : in->size - offset;
-
-	memcpy(buffer, in->content + offset, to_read);
-	in->stats_info.last_acc = time(NULL);
-
-	return to_read;
+	return read_file(in, buffer, size, offset);
 }
 
 static int
@@ -139,14 +146,14 @@ static int
 fisopfs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 {
 	printf("[Debug] fisop_touch : %s\n", path);
-	return create_file(path, mode, FS_FILE);
+	return create_file(path, mode);
 }
 
 static int
 fisopfs_mkdir(const char *path, mode_t mode)
 {
 	printf("mkdir %s\n", path);
-	return create_file(path, mode, FS_DIR);
+	return create_dir(path, mode);
 }
 
 
@@ -164,7 +171,8 @@ fisopfs_unlink(const char *path)
 static int
 fisopfs_rmdir(const char *path)
 {
-	// Elimino directorio jej ((idem que el anterior pero llamando a la funcion de delete_dir))
+	printf("[Debug] fisopfs_rmdir: %s\n", path);
+	return delete_dir(path);
 }
 
 

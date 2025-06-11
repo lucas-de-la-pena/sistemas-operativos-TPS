@@ -40,16 +40,133 @@ save_fs(char *save_file)
 }
 
 // ============================
+// OPERACIONES GENERICAS
+// ============================
+
+// Crea un nodo genérico (archivo o directorio)
+int
+create_node(const char *path, mode_t mode, int type)
+{
+	if (strlen(path) - 1 > MAX_CONTENT) {
+		fprintf(stderr,
+		        "[Debug] Error create_node: %s\n",
+		        strerror(ENAMETOOLONG));
+		errno = ENAMETOOLONG;
+		return -ENAMETOOLONG;
+	}
+
+	// Normalizar el path
+	char *clean_path = remove_slash(path);
+	if (!clean_path)
+		return -1;
+
+	// Buscar índice de inodo libre
+	int inode_index = next_free_inodo(clean_path);
+	if (inode_index < 0) {
+		free(clean_path);
+		return inode_index;
+	}
+
+	// Inicializar nuevo inodo
+	struct inode node;
+	node.type = type;
+	node.mode = mode;
+	node.size = 0;
+	node.id_user = getuid();
+	node.id_grup = getgid();
+	node.stats_info.creation = time(NULL);
+	node.stats_info.last_acc = node.stats_info.creation;
+	node.stats_info.last_mod = node.stats_info.creation;
+	strcpy(node.path, clean_path);
+
+	// Obtener directorio padre
+	char parent_path[MAX_PATH];
+	size_t len = strlen(path) - 1;
+	memcpy(parent_path, path + 1, len);
+	parent_path[len] = '\0';
+	get_path_parent(parent_path);
+
+	strcpy(node.directory_path, parent_path);
+
+	// Inicializar contenido del inodo
+	memset(node.content, 0, sizeof(node.content));
+
+	// Guardar en el sistema de archivos
+	super_b.inodes[inode_index] = node;
+	super_b.bitmap_inodes[inode_index] = 1;
+
+	free(clean_path);
+	return 0;
+}
+
+int
+delete_inode(const char *path, int expected_type)
+{
+	int idx = get_index_inodo(path);
+	if (idx < 0) {
+		fprintf(stderr, "[Debug] Error: %s not found.\n", path);
+		return -ENOENT;
+	}
+
+	struct inode *node = &super_b.inodes[idx];
+	if (node->type != expected_type) {
+		if (expected_type == FS_DIR)
+			return -ENOTDIR;
+		else {
+			fprintf(stderr, "[Debug] Error: %s is not a file.\n", path);
+			return -1;
+		}
+	}
+
+	// Si es un directorio, verifico que esté vacío
+	if (expected_type == FS_DIR) {
+		char *normalized_path = remove_slash(path);
+		if (!normalized_path)
+			return -ENOMEM;
+
+		for (int i = 0; i < MAX_INODES; i++) {
+			if (strcmp(super_b.inodes[i].directory_path,
+			           normalized_path) == 0) {
+				free(normalized_path);
+				return -ENOTEMPTY;
+			}
+		}
+		free(normalized_path);
+	}
+
+	// Limpio el inodo
+	super_b.bitmap_inodes[idx] = 0;
+	memset(&super_b.inodes[idx], 0, sizeof(struct inode));
+	return 0;
+}
+
+
+// ============================
 // OPERACIONES SOBRE ARCHIVOS
 // ============================
 
 int
-read_file(char *path)
+read_file(struct inode *in, char *buffer, size_t size, off_t offset)
 {
-	return 0;
+	if (offset < 0 || size < 0)
+		return -EINVAL;
+
+	// Si el offset es igual o mayor al tamaño, no hay más datos que leer
+	if (offset >= in->size)
+		return 0;
+
+	// Calculo cuantos bytes se pueden leer sin pasarse del tamaño del archivo
+	size_t to_read = (in->size - offset > size) ? size : in->size - offset;
+
+	memcpy(buffer, in->content + offset, to_read);
+
+	// Actualizo la última fecha de acceso
+	in->stats_info.last_acc = time(NULL);
+
+	return to_read;
 }
 
-// Quita la primera barra del path y devuelve solo el nombre del archivo/directorio.
+// Saca la primera barra del path y devuelve solo el nombre del archivo/directorio.
 char *
 remove_slash(const char *path)
 {
@@ -106,11 +223,19 @@ void
 get_path_parent(char *path_parent)
 {
 	char *last = strrchr(path_parent, '/');
-	if (last)
-		*last = '\0';
-	else
-		path_parent[0] = '\0';
+	if (last) {
+		if (last == path_parent) {
+			// Caso especial: el padre es la raíz "/"
+			*(last + 1) = '\0';  // Dejo solo "/"
+		} else {
+			*last = '\0';  // Corta después del último '/'
+		}
+	} else {
+		// No hay '/' en el path, entonces el padre es root
+		strcpy(path_parent, "/");
+	}
 }
+
 
 // Busca el siguiente índice libre de inodo disponible.
 // Retorna ENOSPC si no hay espacio o EEXIST si ya existe el path.
@@ -139,84 +264,22 @@ next_free_inode(const char *path)
 	return free_index;
 }
 
-//Crea un archivo o directorio nuevo y lo guarda como inodo.
-//Errores posibles:
+// Crea un archivo o directorio nuevo y lo guarda como inodo.
+// Errores posibles:
 //- ENAMETOOLONG: nombre demasiado largo
 //- ENOSPC: sin espacio
 //- EEXIST: ya existe
 int
-create_file(const char *path, mode_t mode, int type)
+create_file(const char *path, mode_t mode)
 {
-	if (strlen(path) - 1 > MAX_CONTENT) {
-		fprintf(stderr, "[Debug] Error create_file: %s\n", strerror(errno));
-		errno = ENAMETOOLONG;
-		return -ENAMETOOLONG;
-	}
-
-	char *name = remove_slash(path);
-	if (!name)
-		return -1;
-
-	int idx = next_free_inode(name);
-	if (idx < 0) {
-		free(name);
-		return idx;
-	}
-
-	struct inode node = { .type = type,
-		              .mode = mode,
-		              .size = 0,
-		              .id_user = getuid(),
-		              .id_grup = getgid(),
-		              .stats_info = { .creation = time(NULL),
-		                              .last_acc = time(NULL),
-		                              .last_mod = time(NULL) } };
-	strcpy(node.path, name);
-
-	if (type == FS_FILE) {
-		char parent[MAX_PATH];
-		strncpy(parent, path + 1, strlen(path) - 1);
-		parent[strlen(path) - 1] = '\0';
-		get_path_parent(parent);
-
-		if (strlen(parent) == 0)
-			strcpy(parent, ROOT_PATH);
-
-		strcpy(node.directory_path, parent);
-	} else {
-		strcpy(node.directory_path, ROOT_PATH);
-	}
-
-	memset(node.content, 0, sizeof(node.content));
-
-	super_b.inodes[idx] = node;
-	super_b.bitmap_inodes[idx] = 1;
-	free(name);
-
-	return 0;
+	return create_node(path, mode, FS_FILE);
 }
 
 // Elimina un archivo (si existe y no es un directorio).
 int
 delete_file(char *path)
 {
-	for (int i = 0; i < MAX_INODES; i++) {
-		if (super_b.bitmap_inodes[i] &&
-		    strcmp(super_b.inodes[i].path, path) == 0) {
-			struct inode *f = &super_b.inodes[i];
-			if (f->type != FS_FILE) {
-				fprintf(stderr,
-				        "[Debug] Error: %s is not a file.\n",
-				        path);
-				return -1;
-			}
-			memset(f, 0, sizeof(struct inode));
-			super_b.bitmap_inodes[i] = 0;
-			return 0;
-		}
-	}
-	fprintf(stderr, "[Debug] Error: File %s not found.\n", path);
-	return -1;
+	return delete_inode(path, FS_FILE);
 }
 
 // Escribe datos en un archivo desde una posición dada.
@@ -231,7 +294,7 @@ write_file(const char *path, const char *buffer, size_t size, off_t offset)
 
 	int idx = get_index_inode(path);
 	if (idx < 0) {
-		if ((idx = create_file(path, 0644, FS_FILE)) < 0)
+		if ((idx = create_file(path, 0644)) < 0)
 			return idx;
 		idx = get_index_inode(path);
 	}
@@ -277,30 +340,44 @@ get_stats(char *path)
 int
 create_dir(const char *path, mode_t mode)
 {
-	return 0;
+	return create_node(path, mode, FS_DIR);
 }
 
-char *
-get_dir(char *path, mode_t mode)
-{
-	char *re = "";
-	return re;
-}
-
+// Elimina directorio dado su path
 int
 unlink(const char *path)
 {
+	int idx = get_index_inodo(path);
+	if (idx < 0)
+		return -1;
+
+	// Si es un directorio, no se puede eliminar con unlink
+	if (super_b.inodes[idx].type == FS_DIR)
+		return -EISDIR;
+
+	// Limpio contenido del inodo
+	super_b.bitmap_inodes[idx] = 0;
+	memset(super_b.inodes[idx].content, 0, sizeof(super_b.inodes[idx].content));
+	memset(super_b.inodes[idx].path, 0, sizeof(super_b.inodes[idx].path));
+
 	return 0;
 }
 
 int
 delete_dir(const char *path)
 {
-	return 0;
+	return delete_inode(path, FS_DIR);
 }
 
 int
 list_dir(char *path)
 {
 	return 0;
+}
+
+char *
+get_dir(char *path, mode_t mode)
+{
+	char *res = "";
+	return res;
 }

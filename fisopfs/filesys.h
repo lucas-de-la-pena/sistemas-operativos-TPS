@@ -102,10 +102,10 @@ int save_fs(char *save_file);
 //-----------------------------------
 
 // Lee el contenido de un archivo
-int read_file(char *path);
+int read_file(struct inode *in, char *buffer, size_t size, off_t offset);
 
 // Crea un archivo nuevo
-int create_file(const char *path, mode_t mode, int type);
+int create_file(const char *path, mode_t mode);
 
 // Elimina un archivo existente
 int delete_file(char *path);
