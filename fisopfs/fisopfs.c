@@ -27,7 +27,6 @@ get_and_validate_inode(const char *path, int expected_type, struct inode **inode
 	return 0;
 }
 
-
 // ----------------------------------
 //       Get Attributes
 // ----------------------------------
@@ -37,13 +36,11 @@ fisopfs_getattr(const char *path, struct stat *st)
 	printf("[debug] fisopfs_getattr - path: %s\n", path);
 	int i = get_index_inode(path);
 	if (i == -1) {
-		fprintf(stderr, "[Debug] getattr: %s\n", strerror(errno));
-		errno = ENOENT;
 		return -ENOENT;
 	}
 
 	struct inode *in = &super_b.inodes[i];
-	memset(st, 0, sizeof(struct stat));  // Limpio la estructura de stat
+	memset(st, 0, sizeof(struct stat));
 	st->st_uid = in->id_user;
 	st->st_gid = in->id_grup;
 	st->st_size = in->size;
@@ -73,13 +70,14 @@ fisopfs_readdir(const char *path,
                 off_t offset,
                 struct fuse_file_info *fi)
 {
+	(void) offset;
+	(void) fi;
+
 	printf("[debug] fisopfs_readdir - path: %s\n", path);
 
-	// Los directorios '.' y '..'
 	filler(buffer, ".", NULL, 0);
 	filler(buffer, "..", NULL, 0);
 
-	// Validar que el path sea un directorio
 	struct inode *inodo_dir;
 	int err = get_and_validate_inode(path, FS_DIR, &inodo_dir);
 	if (err < 0)
@@ -96,7 +94,6 @@ fisopfs_readdir(const char *path,
 	return 0;
 }
 
-
 // ----------------------------------
 //         File Read/Write
 // ----------------------------------
@@ -108,6 +105,8 @@ fisopfs_read(const char *path,
              off_t offset,
              struct fuse_file_info *fi)
 {
+	(void) fi;
+
 	printf("[debug] fisopfs_read - path: %s, offset: %lu, size: %lu\n",
 	       path,
 	       offset,
@@ -131,6 +130,8 @@ fisopfs_write(const char *path,
               off_t offset,
               struct fuse_file_info *fi)
 {
+	(void) fi;
+
 	printf("[Debug] fisopfs_write: %s, offset: %lu, size: %lu\n",
 	       path,
 	       offset,
@@ -145,6 +146,8 @@ fisopfs_write(const char *path,
 static int
 fisopfs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 {
+	(void) fi;
+
 	printf("[Debug] fisop_touch : %s\n", path);
 	return create_file(path, mode);
 }
@@ -155,7 +158,6 @@ fisopfs_mkdir(const char *path, mode_t mode)
 	printf("mkdir %s\n", path);
 	return create_dir(path, mode);
 }
-
 
 // ----------------------------------
 //         File Deletion
@@ -175,7 +177,6 @@ fisopfs_rmdir(const char *path)
 	return delete_dir(path);
 }
 
-
 // ----------------------------------
 //        Metadata Updates
 // ----------------------------------
@@ -185,7 +186,7 @@ fisopfs_truncate(const char *path, off_t size)
 {
 	printf("truncate %s %ld\n", path, size);
 
-	if (size > MAX_CONTENT)
+	if (size > MAX_CONTENIDO)
 		return -EFBIG;
 
 	int i = get_index_inode(path);
@@ -200,7 +201,7 @@ fisopfs_truncate(const char *path, off_t size)
 }
 
 static int
-fisopfs_updatetime(const char *path, const struct timespec ts[2])
+fisopfs_utimens(const char *path, const struct timespec ts[2])
 {
 	int i = get_index_inode(path);
 	if (i == -1)
@@ -213,17 +214,13 @@ fisopfs_updatetime(const char *path, const struct timespec ts[2])
 	return 0;
 }
 
-
 // ----------------------------------
 //        FUSE Init/Destroy
 // ----------------------------------
 
-void *
-fisopfs_init(struct fuse_conn_info *conn, struct fuse_config *cfg)
+static void *
+fisopfs_init()
 {
-	(void) conn;
-	(void) cfg;
-
 	printf("init\n");
 
 	FILE *archivo_disco = fopen(nombre_archivo_disco, "r");
@@ -234,7 +231,7 @@ fisopfs_init(struct fuse_conn_info *conn, struct fuse_config *cfg)
 		if (read != 1) {
 			fprintf(stderr,
 			        "Failed to read superblock from disk image.\n");
-			return -1;
+			return NULL;
 		}
 		fclose(archivo_disco);
 	}
@@ -242,14 +239,17 @@ fisopfs_init(struct fuse_conn_info *conn, struct fuse_config *cfg)
 	return NULL;
 }
 
-void
-fisopfs_destroy()
+static void
+fisopfs_destroy(void *private_data)
 {
+	(void) private_data;
+
 	printf("shutdown\n");
 
 	FILE *archivo_disco = fopen(nombre_archivo_disco, "w");
 	if (!archivo_disco) {
 		fprintf(stderr, "[Debug] ERROR save fisop: %s\n", strerror(errno));
+		return;
 	}
 
 	if (fwrite(&super_b, sizeof(super_b), 1, archivo_disco) != 1) {
@@ -273,20 +273,19 @@ fisopfs_destroy()
 	fclose(archivo_disco);
 }
 
-
 // ----------------------------------
 //          FUSE Bindings
 // ----------------------------------
 static struct fuse_operations operations = { .getattr = fisopfs_getattr,
-	                                     .getdir = fisopfs_readdir,
+	                                     .readdir = fisopfs_readdir,
 	                                     .read = fisopfs_read,
+	                                     .write = fisopfs_write,
 	                                     .mknod = fisopfs_create,
 	                                     .mkdir = fisopfs_mkdir,
-	                                     .write = fisopfs_write,
-	                                     .rmdir = fisopfs_rmdir,
 	                                     .unlink = fisopfs_unlink,
-	                                     .utime = fisopfs_updatetime,
+	                                     .rmdir = fisopfs_rmdir,
 	                                     .truncate = fisopfs_truncate,
+	                                     .utimens = fisopfs_utimens,
 	                                     .init = fisopfs_init,
 	                                     .destroy = fisopfs_destroy };
 
@@ -297,21 +296,14 @@ main(int argc, char *argv[])
 		if (strcmp(argv[i], "--filedisk") == 0) {
 			filedisk = argv[i + 1];
 
-			// We remove the argument so that fuse doesn't use our
-			// argument or name as folder.
-			// Equivalent to a pop.
 			for (int j = i; j < argc - 1; j++) {
 				argv[j] = argv[j + 2];
 			}
 
-			argc = argc - 2;
+			argc -= 2;
 			break;
 		}
 	}
 
-	// initialize_fs();
-
-	// El cuarto parámetro en versiones superior a Fuse 2.9.9 es obsoleto
-	// y puede marcar un warning, pero es necesario para la version del TP
 	return fuse_main(argc, argv, &operations, NULL);
 }
