@@ -36,41 +36,41 @@ save_fs(char *save_file)
 int
 create_node(const char *path, mode_t mode, int type)
 {
-    if (strlen(path) >= MAX_PATH) {
-        return -ENAMETOOLONG;
-    }
+	if (strlen(path) >= MAX_PATH) {
+		return -ENAMETOOLONG;
+	}
 
-    int inode_index = next_free_inode(path);
-    if (inode_index < 0) {
-        return inode_index;
-    }
-    
-    char parent_path[MAX_PATH];
-    strcpy(parent_path, path);
-    get_path_parent(parent_path);
+	int inode_index = next_free_inode(path);
+	if (inode_index < 0) {
+		return inode_index;
+	}
 
-    int parent_idx = get_index_inode(parent_path);
-    if (parent_idx < 0) {
-        return -ENOENT;
-    }
+	char parent_path[MAX_PATH];
+	strcpy(parent_path, path);
+	get_path_parent(parent_path);
 
-    struct inode *node = &super_b.inodes[inode_index];
-    memset(node, 0, sizeof(struct inode));
+	int parent_idx = get_index_inode(parent_path);
+	if (parent_idx < 0) {
+		return -ENOENT;
+	}
 
-    node->type = type;
-    node->mode = mode;
-    node->size = 0;
-    node->id_user = getuid();
-    node->id_grup = getgid();
-    node->stats_info.creation = time(NULL);
-    node->stats_info.last_acc = node->stats_info.creation;
-    node->stats_info.last_mod = node->stats_info.creation;
-    strcpy(node->path, path);
-    strcpy(node->directory_path, parent_path);
+	struct inode *node = &super_b.inodes[inode_index];
+	memset(node, 0, sizeof(struct inode));
 
-    super_b.bitmap_inodes[inode_index] = 1;
+	node->type = type;
+	node->mode = mode;
+	node->size = 0;
+	node->id_user = getuid();
+	node->id_grup = getgid();
+	node->stats_info.creation = time(NULL);
+	node->stats_info.last_acc = node->stats_info.creation;
+	node->stats_info.last_mod = node->stats_info.creation;
+	strcpy(node->path, path);
+	strcpy(node->directory_path, parent_path);
 
-    return 0;
+	super_b.bitmap_inodes[inode_index] = 1;
+
+	return 0;
 }
 
 int
@@ -94,7 +94,8 @@ delete_inode(const char *path, int expected_type)
 
 	if (expected_type == FS_DIR) {
 		for (int i = 0; i < MAX_INODES; i++) {
-			if (super_b.bitmap_inodes[i] && strcmp(super_b.inodes[i].directory_path, path) == 0) {
+			if (super_b.bitmap_inodes[i] &&
+			    strcmp(super_b.inodes[i].directory_path, path) == 0) {
 				return -ENOTEMPTY;
 			}
 		}
@@ -155,12 +156,13 @@ remove_slash(const char *path)
 int
 get_index_inode(const char *path)
 {
-    for (int i = 0; i < MAX_INODES; i++) {
-        if (super_b.bitmap_inodes[i] && strcmp(path, super_b.inodes[i].path) == 0) {
-            return i;
-        }
-    }
-    return -1;
+	for (int i = 0; i < MAX_INODES; i++) {
+		if (super_b.bitmap_inodes[i] &&
+		    strcmp(path, super_b.inodes[i].path) == 0) {
+			return i;
+		}
+	}
+	return -1;
 }
 
 void
@@ -181,22 +183,23 @@ get_path_parent(char *path_parent)
 int
 next_free_inode(const char *path)
 {
-    int free_index = -1;
+	int free_index = -1;
 
-    for (int i = 0; i < MAX_INODES; i++) {
-        if (super_b.bitmap_inodes[i] && strcmp(super_b.inodes[i].path, path) == 0) {
-            return -EEXIST;
-        }
-        if (super_b.bitmap_inodes[i] == 0 && free_index == -1) {
-            free_index = i;
-        }
-    }
+	for (int i = 0; i < MAX_INODES; i++) {
+		if (super_b.bitmap_inodes[i] &&
+		    strcmp(super_b.inodes[i].path, path) == 0) {
+			return -EEXIST;
+		}
+		if (super_b.bitmap_inodes[i] == 0 && free_index == -1) {
+			free_index = i;
+		}
+	}
 
-    if (free_index == -1) {
-        return -ENOSPC;
-    }
+	if (free_index == -1) {
+		return -ENOSPC;
+	}
 
-    return free_index;
+	return free_index;
 }
 
 int
@@ -235,12 +238,12 @@ write_file(const char *path, const char *buffer, size_t size, off_t offset)
 
 	if (node->type == FS_DIR) {
 		fprintf(stderr, "Error: Cannot write in a Directory.\n");
-		return -EISDIR; 
+		return -EISDIR;
 	}
-	
+
 	if (offset < 0 || offset > node->size) {
-    	fprintf(stderr, "[Debug] Error write: offset is invalid.\n");
-    	return -EINVAL;
+		fprintf(stderr, "[Debug] Error write: offset is invalid.\n");
+		return -EINVAL;
 	}
 
 	memcpy(node->content + offset, buffer, size);
