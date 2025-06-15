@@ -22,10 +22,7 @@
 #define MODE_FILE (__S_IFREG | 0644)
 #define MODE_DIR (__S_IFDIR | 0755)
 
-typedef enum inode_type {
-	FS_DIR,
-	FS_FILE
-} inode_type;
+typedef enum inode_type { FS_DIR, FS_FILE } inode_type;
 
 typedef struct stats {
 	time_t last_acc;
