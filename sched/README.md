@@ -1,57 +1,121 @@
-# sched
+# sched — Scheduling y cambio de contexto
 
-Repositorio para el esqueleto del [TP sched](https://fisop.github.io/website/tps/sched) del curso Mendez-Fresia de **Sistemas Operativos (7508) - FIUBA**
+**Trabajo Práctico 2 — Sistemas Operativos (7508) - FIUBA**
+Cátedra Méndez-Fresia
 
-## Respuestas teóricas
+## Descripción
 
-Utilizar el archivo `sched.md` provisto en el repositorio
+Este trabajo práctico implementa el mecanismo de **cambio de contexto** y el **planificador (scheduler)** sobre **JOS**, un exokernel educativo del MIT modificado para la materia. JOS corre sobre arquitectura Intel x86 emulada mediante **QEMU**.
 
-## Compilar
+El proyecto se divide en tres partes:
 
-Por _default_ se compilará el _scheduler_ en versión **round-robin**.
+1. **Cambio de contexto** — Implementación del pasaje de kernel a usuario (`context_switch` con `iret`) y de usuario a kernel (`_alltraps` vía interrupciones).
+2. **Scheduler Round Robin** — Planificador circular que distribuye el CPU equitativamente entre todos los procesos.
+3. **Scheduler con Prioridades** — Planificador que asigna y respeta prioridades, con syscalls seguras para consultarlas y modificarlas, más estadísticas de scheduling.
+
+## Estructura del proyecto
+
+```
+sched/
+├── inc/          # Headers compartidos (Env, Trapframe, syscalls)
+├── kern/         # Kernel: scheduling, traps, syscalls, init
+│   ├── env.c     # PCB, creación/destrucción de procesos
+│   ├── sched.c   # Planificador (round robin y prioridades)
+│   ├── switch.S  # context_switch en assembler x86
+│   ├── trap.c    # Manejo de interrupciones
+│   ├── trapentry.S  # Handlers de interrupciones (_alltraps)
+│   └── syscall.c # Syscalls
+├── lib/          # Librería de usuario
+├── user/         # Programas de usuario (hello, primes, etc.)
+├── doc/          # Documentación
+├── GNUmakefile   # Build system
+└── dock          # Script helper para Docker
+```
+
+## Compilación
 
 ```bash
 make
 ```
 
-## Compilación condicional de _schedulers_
+Por defecto se compila el scheduler **round-robin**.
 
-Para compilar y probar el kernel y poder probar ambos planificadores, se puede:
+### Compilación condicional
 
-- **round-robin**:
+- **Round Robin:**
+  ```bash
+  make <target> USE_RR=1
+  ```
+- **Prioridades:**
+  ```bash
+  make <target> USE_PR=1
+  ```
+
+## Ejecución
 
 ```bash
-make <target> USE_RR=1
+make qemu           # Con ventana gráfica
+make qemu-nox       # Sin ventana (terminal)
+make run-<proceso>  # Ejecutar un proceso específico
 ```
 
-- **priorities**:
+Ejemplos:
 
 ```bash
-make <target> USE_PR=1
+make run-hello-nox
+make run-primes-nox
+```
+
+## Depurado con GDB
+
+**Terminal 1:**
+```bash
+make qemu-gdb
+```
+
+**Terminal 2:**
+```bash
+make gdb
+```
+
+### Triple fault
+
+Si QEMU se reinicia constantemente, agregar al `GNUmakefile` en `QEMUOPTS`:
+
+```
+-no-reboot -no-shutdown -d cpu_reset
 ```
 
 ## Pruebas
 
 ```bash
-make grade
+make grade USE_RR=1   # Pruebas del scheduler round robin
+make grade USE_PR=1   # Pruebas del scheduler con prioridades
 ```
 
-## Docker
+## Partes implementadas
 
-Se provee un _script_ `dock` que permite ejecutar los siguientes comandos:
+### Parte 1 — Cambio de contexto
 
-- **build**: genera la imagen del proyecto usando el `Dockerfile` provisto
-- **run**: genera un _container_ a partir de la imagen anterior y lo corre
-- **exec**: permite abrir una nueva _shell_ en el _container_ anterior
+- **`context_switch`** en `kern/switch.S`: restaura todos los registros del `Trapframe` y ejecuta `iret` para saltar a modo usuario.
+- **`_alltraps`** en `kern/trapentry.S`: completa el `Trapframe` en el stack y llama a `trap()` para manejar interrupciones desde modo usuario.
+- **`env_run`** en `kern/env.c`: orquesta el cambio de proceso: actualiza `curenv`, carga la tabla de páginas y llama a `context_switch`.
 
-Dentro del _container_ se pueden ejecutar todos los comandos provistos por el `GNUmakefile` como `make grade` o `make qemu-nox`.
+### Parte 2 — Round Robin
 
-El _container_ utiliza [mount volumes](https://docs.docker.com/storage/volumes/) con lo cual los cambios que se realicen por fuera del mismo, serán visibles de forma automática.
+- **`sched_yield`** en `kern/sched.c`: itera circularmente sobre el arreglo de procesos (`envs`) y ejecuta el próximo proceso en estado `ENV_RUNNABLE`.
 
-## Linter
+### Parte 3 — Prioridades
 
-```bash
-$ make format
-```
+- Prioridad asignada en creación (`env_create`/`env_alloc`)
+- Syscalls seguras: un proceso puede **bajar** su prioridad pero no **subirla**
+- Las prioridades se heredan/computan en syscalls como `fork`
+- Estadísticas de scheduling mostradas al finalizar (`sched_halt`): historial de ejecuciones, cantidad de llamadas al scheduler, conteo por proceso
 
-Para efectivamente subir los cambios producidos por el `format`, hay que `git add .` y `git commit`.
+## Informe teórico
+
+Las decisiones de diseño, explicación del cambio de contexto, y detalles de la implementación con prioridades se encuentran en [`sched.md`](./sched.md).
+
+---
+
+*Proyecto realizado durante el primer cuatrimestre de 2025.*
